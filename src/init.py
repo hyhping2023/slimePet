@@ -23,18 +23,12 @@ class GlobalSetting():
             self.hand = None
             return
         hand = hands[0]
-        # 判断是否为同一只手
-        if self.hand is None:
-            self.hand = Hand(hand)
-        elif self.hand.judge_the_same_hand(hand["middle"][0][:2]):
-            self.hand.x, self.hand.y = hand["middle"][0][:2]
-        else:
-            self.hand = Hand(hand)
-            print("New hand detected")
+        self.hand = Hand(hand)
 
     def hand_grab_slime(self):
         dis = ((self.hand.x - self.slime.x) ** 2 + (self.hand.y - self.slime.y) ** 2) ** 0.5
-        if dis < 50:
+        print(dis)
+        if dis < 250:
             self.slime.x = self.hand.x
             self.slime.y = self.hand.y
 
@@ -43,7 +37,12 @@ class GlobalSetting():
         # 获取手部位置关键点
         self.hand_update()
         if self.hand is not None:
-            print(self.hand.x, self.hand.y)
+            # print(self.hand.x, self.hand.y)
+            print(self.slime.x, self.slime.y)
+            print(self.hand.is_grab())
+            if self.hand.is_grab():
+                self.hand_grab_slime()
+                self.slime.update()
 
 if __name__ == "__main__":
     root = tk.Tk()

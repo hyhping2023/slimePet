@@ -31,9 +31,10 @@ class Hand:
             reference.sort(key=lambda x: x[1])
             if reference[0][1] <= point[1] <= reference[1][1]:
                 vertical = True
+            # 一个方向为真即可判断为抓住
             return vertical or horizontal
-        for finger_info in self.finger_info.values():
-            if is_in_hand(finger_info[-1], [finger_info[0], self.wrist]):
+        for finger in self.finger_info.values():
+            if is_in_hand(finger[-1], [finger[0], self.wrist[0]]):
                 grab_threshold += 1
         if grab_threshold >= 3:
             return True
@@ -49,6 +50,9 @@ class Hand:
         return False
 
 class HandPose:
+    '''
+    自己面朝的左上角为(0, 0)点，x轴向右，y轴向下
+    '''
     def __init__(self, root:tk.Tk):
         # 初始化MediaPipe Hands
         self.mp_hands = mp.solutions.hands
@@ -64,6 +68,8 @@ class HandPose:
     # 得到手部位置关键点
     def get_hand_landmarks(self, ):
         ret, frame = self.cap.read()
+        # 将帧进行翻转
+        frame = cv2.flip(frame, 1)
         if not ret:
             warnings.warn("Failed to capture image from camera.")
             return []
@@ -114,6 +120,9 @@ if __name__ == "__main__":
     mp_hands = mp.solutions.hands
     while True:
         hands, frame, hand_landmarks = handpose.get_hand_landmarks()
+        if len(hands) == 0:
+            continue
+        print(hands[0]['thumb'][0][:2])
         # 画出手部关键点
         mp_drawing.draw_landmarks(
             frame, hand_landmarks, mp_hands.HAND_CONNECTIONS

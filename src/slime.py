@@ -3,7 +3,7 @@ import tkinter as tk
 import time
 
 class DesktopPet:
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: tk.Tk, size = 110):
         self.root = root
         self.root.overrideredirect(True)  # 去掉窗口边框
         self.root.attributes("-topmost", True)  # 窗口始终在最前端
@@ -11,10 +11,12 @@ class DesktopPet:
         self.root.attributes("-transparentcolor", "white") # Windows透明色
 
         # 窗口位置
-        self.x = 0
-        self.y = 0
+        self.x = self.root.winfo_screenwidth() // 2
+        self.y = self.root.winfo_screenheight() // 2
+        self.root.geometry(f"+{self.x}+{self.y}")
         self.offset_x = 0
         self.offset_y = 0
+        self.size = size
 
         # 加载帧
         self.frames = []
@@ -22,10 +24,9 @@ class DesktopPet:
         self.current_frame = 0
 
         # 创建画布
-        # self.canvas = tk.Canvas(self.root, highlightthickness=0)
-        # self.canvas.pack(fill=tk.BOTH, expand=True)
         self.pet_label = tk.Label(self.root, bg="white", highlightthickness=0)
         self.pet_label.pack(fill=tk.NONE)
+        self.pet_label.config(width=self.size, height=self.size)
 
         # 绑定鼠标事件
         self.pet_label.bind("<ButtonPress-1>", self.start_drag)
@@ -45,7 +46,7 @@ class DesktopPet:
     def load_image(self, image_path):
         frames = []
         try:
-            image = Image.open(image_path)
+            image = Image.open(image_path).resize((self.size, self.size), resample=Image.BICUBIC)
             image_rgb = image.convert("RGBA")
             photo = ImageTk.PhotoImage(image_rgb)
             frames.append(photo)
@@ -55,14 +56,14 @@ class DesktopPet:
                 pass
         except Exception as e:
             print(f"Error loading Image: {e}")
-            frames.append(ImageTk.PhotoImage(Image.new("RGBA", (100, 100), (255, 0, 0, 255))))
+            frames.append(ImageTk.PhotoImage(Image.new("RGBA", (self.size, self.size), (255, 0, 0, 255))))
         return frames
     
     def load_gif(self, gif_path):
         # 加载GIF的每一帧
         frames = []
         try:
-            frame = Image.open(gif_path)
+            frame = Image.open(gif_path).resize((self.size, self.size), resample=Image.LANCZOS)
             while True:
                 frame_rgb = frame.convert("RGBA")
                 photo = ImageTk.PhotoImage(frame_rgb)
@@ -83,13 +84,8 @@ class DesktopPet:
             self.current_frame = (self.current_frame + 1) % len(self.frames)
             # self.canvas.itemconfig(self.pet_image, image=self.gif_frames[self.current_frame])
             self.pet_label.config(image=self.frames[self.current_frame])
-            # if emotion == "smile":
-            #     # 设置当前表情
-            #     self.emotion_label.config(image=self.emotions[emotion])
-            # else:
-            #     self.emotion_label.config(image=self.emotions["sad"])
                 
-        self.root.after(100, self.animate)  # 每100毫秒更新一次
+        self.root.after(16, self.animate)  # 每100毫秒更新一次
 
     def start_drag(self, event):
         # 开始拖动
@@ -101,6 +97,11 @@ class DesktopPet:
         new_x = self.root.winfo_x() + event.x - self.offset_x
         new_y = self.root.winfo_y() + event.y - self.offset_y
         self.root.geometry(f"+{new_x}+{new_y}")
+        self.x, self.y = new_x, new_y
+
+    def update(self):
+        # 更新宠物位置
+        self.root.geometry(f"+{int(self.x)}+{int(self.y)}")
 
     def jump(self, event):
         # 双击让宠物“跳跃”
