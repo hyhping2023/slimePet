@@ -3,8 +3,53 @@ import mediapipe as mp
 import warnings
 import tkinter as tk
 
+class Hand:
+    def __init__(self, hand_landmarks:dict):
+        self.finger_info = {
+            "thumb": hand_landmarks["thumb"],
+            "index": hand_landmarks["index"],
+            "middle": hand_landmarks["middle"],
+            "ring": hand_landmarks["ring"],
+            "pinky": hand_landmarks["pinky"]
+        }
+        self.wrist = hand_landmarks["wrist"]
+
+        # physics properties
+        self.x, self.y = self.finger_info["middle"][0][:2]
+        self.omega = 0
+
+
+    def is_grab(self):
+        grab_threshold = 0
+        def is_in_hand(point:list, reference:list, ):
+            vertical, horizontal = False, False
+            # 水平方向考虑
+            reference.sort(key=lambda x: x[0])
+            if reference[0][0] <= point[0] <= reference[1][0]:
+                horizontal = True
+            # 垂直方向考虑
+            reference.sort(key=lambda x: x[1])
+            if reference[0][1] <= point[1] <= reference[1][1]:
+                vertical = True
+            return vertical or horizontal
+        for finger_info in self.finger_info.values():
+            if is_in_hand(finger_info[-1], [finger_info[0], self.wrist]):
+                grab_threshold += 1
+        if grab_threshold >= 3:
+            return True
+        return False
+    
+    def judge_the_same_hand(self, other_hand: list[float, float]):
+        def distance(point1, point2):
+            return ((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2) ** 0.5
+        # 计算手腕之间的距离
+        dis = distance((self.x, self.y), other_hand)
+        if dis < 200:
+            return True
+        return False
+
 class HandPose:
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root:tk.Tk):
         # 初始化MediaPipe Hands
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands()
@@ -35,6 +80,16 @@ class HandPose:
                 hand_landmarks_dict = {"wrist": [], "thumb": [], "index": [], "middle": [], "ring": [], "pinky": []}
                 # 画出手部关键点
                 for id, landmark in enumerate(hand_landmarks.landmark):
+                    # 将返回值限制在屏幕范围内
+                    if landmark.x > 1:
+                        landmark.x = 1
+                    if landmark.y > 1:
+                        landmark.y = 1
+                    if landmark.x < 0:
+                        landmark.x = 0
+                    if landmark.y < 0:
+                        landmark.y = 0
+                    # 将坐标转换为屏幕坐标 
                     if id == 0:
                         hand_landmarks_dict["wrist"] = [(landmark.x*self.screen_width, landmark.y*self.screen_height)]
                     elif id <= 4:
@@ -48,15 +103,27 @@ class HandPose:
                     elif id <= 20:
                         hand_landmarks_dict["pinky"].append((landmark.x*self.screen_width, landmark.y*self.screen_height))
                 hands.append(hand_landmarks_dict)
-        return hands
+        # return hands, frame, hand_landmarks
+            return [hands[0]]
+        return []
     
 if __name__ == "__main__":
     root = tk.Tk()
     handpose = HandPose(root)
+    mp_drawing = mp.solutions.drawing_utils
+    mp_hands = mp.solutions.hands
     while True:
-        hands = handpose.get_hand_landmarks()
-        print(hands)
-        print(handpose.screen_width, handpose.screen_height)
-
-        import time
-        time.sleep(1)
+        hands, frame, hand_landmarks = handpose.get_hand_landmarks()
+        # 画出手部关键点
+        mp_drawing.draw_landmarks(
+            frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+        )
+        cv2.imshow("Hand Gesture Recognition", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        # print(hands)
+        # print(handpose.screen_width, handpose.screen_height)
+        # import time
+        # time.sleep(0.1)
+    cv2.destroyAllWindows()
+        

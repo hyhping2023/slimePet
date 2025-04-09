@@ -32,12 +32,12 @@ class DesktopPet:
         self.pet_label.bind("<B1-Motion>", self.drag)
         self.pet_label.bind("<Double-Button-1>", self.jump)
 
-        # 导入表情图片
-        self.emotions = {
-            "smile": ImageTk.PhotoImage(Image.open("asset/smile.png").convert("RGBA")),
-            "sad": ImageTk.PhotoImage(Image.open("asset/sad.png").convert("RGBA")),
-            # "angry": ImageTk.PhotoImage(Image.open("asset/angry.png").convert("RGBA")),
-        }
+        # # 导入表情图片
+        # self.emotions = {
+        #     "smile": ImageTk.PhotoImage(Image.open("asset/smile.png").convert("RGBA")),
+        #     "sad": ImageTk.PhotoImage(Image.open("asset/sad.png").convert("RGBA")),
+        #     # "angry": ImageTk.PhotoImage(Image.open("asset/angry.png").convert("RGBA")),
+        # }
 
         # 启动动画
         self.animate()
@@ -78,16 +78,16 @@ class DesktopPet:
         return frames
     
     def animate(self, emotion="smile"):
-        # 更新GIF动画
+        # 更新图片
         if self.frames:
             self.current_frame = (self.current_frame + 1) % len(self.frames)
             # self.canvas.itemconfig(self.pet_image, image=self.gif_frames[self.current_frame])
             self.pet_label.config(image=self.frames[self.current_frame])
-            if emotion == "smile":
-                # 设置当前表情
-                self.emotion_label.config(image=self.emotions[emotion])
-            else:
-                self.emotion_label.config(image=self.emotions["sad"])
+            # if emotion == "smile":
+            #     # 设置当前表情
+            #     self.emotion_label.config(image=self.emotions[emotion])
+            # else:
+            #     self.emotion_label.config(image=self.emotions["sad"])
                 
         self.root.after(100, self.animate)  # 每100毫秒更新一次
 
