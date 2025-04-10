@@ -7,8 +7,8 @@ class DesktopPet:
         self.root = root
         self.root.overrideredirect(True)  # 去掉窗口边框
         self.root.attributes("-topmost", True)  # 窗口始终在最前端
-        # self.root.attributes("-transparent", "True")  # 设置透明背景
-        self.root.attributes("-transparentcolor", "white") # Windows透明色
+        self.root.attributes("-transparent", "True")  # 设置透明背景
+        # self.root.attributes("-transparentcolor", "white") # Windows透明色
 
         # 窗口位置
         self.x = self.root.winfo_screenwidth() // 2
@@ -20,7 +20,7 @@ class DesktopPet:
 
         # 加载帧
         self.frames = []
-        self.frames.extend(self.load_image("asset/slime.ico"))  # 替换为你的GIF文件路径
+        self.frames.extend(self.load_image("asset/slime.png"))  # 替换为你的GIF文件路径
         self.current_frame = 0
 
         # 创建画布
@@ -85,7 +85,7 @@ class DesktopPet:
             # self.canvas.itemconfig(self.pet_image, image=self.gif_frames[self.current_frame])
             self.pet_label.config(image=self.frames[self.current_frame])
                 
-        self.root.after(16, self.animate)  # 每100毫秒更新一次
+        # self.root.after(16, self.animate)  # 每100毫秒更新一次
 
     def start_drag(self, event):
         # 开始拖动

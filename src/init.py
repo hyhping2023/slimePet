@@ -14,7 +14,7 @@ class GlobalSetting():
 
     def run(self):
         self.update()
-        self.root.after(100, self.run)
+        self.root.after(16, self.run)
 
     def hand_update(self):
         # 获取当前识别到的手
@@ -36,6 +36,7 @@ class GlobalSetting():
     def update(self):
         # 获取手部位置关键点
         self.hand_update()
+        self.slime.update()
         if self.hand is not None:
             # print(self.hand.x, self.hand.y)
             print(self.slime.x, self.slime.y)
@@ -43,6 +44,8 @@ class GlobalSetting():
             if self.hand.is_grab():
                 self.hand_grab_slime()
                 self.slime.update()
+        # with AudioToTextRecorder() as recorder:
+        #     print("Transcription: ", recorder.text())
 
 if __name__ == "__main__":
     root = tk.Tk()
