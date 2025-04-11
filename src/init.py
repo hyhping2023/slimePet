@@ -1,6 +1,5 @@
 import tkinter as tk
 import os
-import fcntl
 from .slime import DesktopPet
 from .handpose import HandPose, Hand
 from .voicecontrol import voice_control_thread
@@ -42,11 +41,11 @@ class GlobalSetting():
             self.slime.y = self.hand.y
 
     def load_voice_record(self,):
+        if not os.path.exists(self.tmp_dir):
+            return None
         with open(self.tmp_dir, "r") as f:
-            fcntl.flock(f, fcntl.LOCK_SH)
             # 读取文件内容
             content = f.read()
-            fcntl.flock(f, fcntl.LOCK_UN)
         if content != self.prev_content:
             self.prev_content = content
             print("读取到新内容：", content)
