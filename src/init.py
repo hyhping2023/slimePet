@@ -1,8 +1,10 @@
 import tkinter as tk
-import cv2
+import os
+import fcntl
 from .slime import DesktopPet
 from .handpose import HandPose, Hand
 from .voicecontrol import voice_control_thread
+import multiprocessing as mp
 
 class GlobalSetting():
     def __init__(self, root: tk.Tk):
@@ -10,12 +12,17 @@ class GlobalSetting():
         self.handpose = HandPose(root)
         self.hand = None
         self.root = root
-        self.root.bind("<Button-1>", self.slime.start_drag)
+        # 将语音控制与按键空格绑定
+        # self.voice_recognize()
+        self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
+        self.prev_content = "" 
+        mp.Process(target=voice_control_thread).start()
         self.run()
         
 
     def run(self):
         self.update()
+        self.load_voice_record()
         self.root.after(16, self.run)
 
     def hand_update(self):
@@ -34,6 +41,18 @@ class GlobalSetting():
             self.slime.x = self.hand.x
             self.slime.y = self.hand.y
 
+    def load_voice_record(self,):
+        with open(self.tmp_dir, "r") as f:
+            fcntl.flock(f, fcntl.LOCK_SH)
+            # 读取文件内容
+            content = f.read()
+            fcntl.flock(f, fcntl.LOCK_UN)
+        if content != self.prev_content:
+            self.prev_content = content
+            print("读取到新内容：", content)
+            return content
+        return None
+        
 
     def update(self):
         # 获取手部位置关键点
@@ -48,9 +67,6 @@ class GlobalSetting():
                 self.slime.update()
         # with AudioToTextRecorder() as recorder:
         #     print("Transcription: ", recorder.text())
-
-    def voice_recognize(self):
-        voice_control_thread()
 
 if __name__ == "__main__":
     root = tk.Tk()

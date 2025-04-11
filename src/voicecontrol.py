@@ -7,17 +7,22 @@ import os
 from pynput import keyboard
 import threading
 import logging
+import fcntl
+import whisper
+
 
 # 全局变量
-storage_dir = "../tmp"
+storage_dir = os.getcwd().split("slimePet")[0] + "slimePet" + os.sep + "tmp" + os.sep
 if not os.path.exists(storage_dir):
     os.makedirs(storage_dir)
 file_dir = os.path.join(storage_dir, "voice.wav")
+tmp_dir = os.path.join(storage_dir, "tmp.txt")
 recording = False
 frames = []
 samplerate = 44100
 channels = 1
 dtype = 'int16'
+model = None
 
 def start_recording():
     global recording, frames
@@ -26,24 +31,34 @@ def start_recording():
     print("开始录音...")
 
 def stop_recording():
-    global recording
+    global recording, model
     recording = False
     print("录音结束，正在识别...")
     # 将录音数据转换为适合识别的格式
     audio_data = np.array(frames, dtype=np.int16)
     # 保存到临时文件
     sf.write(file_dir, audio_data, samplerate)
+    # result = model.transcribe(file_dir)
+    # print(result['text'])
+    # if os.path.exists(file_dir):
+    #     os.remove(file_dir)
     # 进行语音识别
     try:
         r = sr.Recognizer()
         with sr.AudioFile(file_dir) as source:
             audio = r.record(source)
             text = r.recognize_google(audio, language='zh-CN')
+            write_to_file(text)
             print("识别结果：", text)
     except sr.UnknownValueError:
         print("无法识别的语音")
     except sr.RequestError:
-        print("语音识别服务不可用")
+        print("语音识别服务不可用，使用本地服务")
+        if model is None:
+            model = whisper.load_model("tiny")
+        result = model.transcribe(file_dir)
+        write_to_file(result['text'])
+        print("本地识别结果：", result['text'])
     finally:
         # 删除临时文件
         if os.path.exists(file_dir):
@@ -57,6 +72,14 @@ def on_press(key):
         stop_recording()
     if key == keyboard.Key.esc:
         exit()
+
+def write_to_file(data:str):
+    print("写入文件：", data)
+    print("临时文件路径：", tmp_dir)
+    with open(tmp_dir, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(data)
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 def record_audio():
     global recording, frames
