@@ -6,6 +6,7 @@ import time
 import os
 from pynput import keyboard
 import threading
+import logging
 
 # 全局变量
 storage_dir = "../tmp"
@@ -37,7 +38,7 @@ def stop_recording():
         r = sr.Recognizer()
         with sr.AudioFile(file_dir) as source:
             audio = r.record(source)
-            text = r.recognize_google(audio, language='en-US')
+            text = r.recognize_google(audio, language='zh-CN')
             print("识别结果：", text)
     except sr.UnknownValueError:
         print("无法识别的语音")
@@ -54,6 +55,8 @@ def on_press(key):
         start_recording()
     elif key == keyboard.Key.space and recording:
         stop_recording()
+    if key == keyboard.Key.esc:
+        exit()
 
 def record_audio():
     global recording, frames
@@ -64,11 +67,12 @@ def record_audio():
                 frames.extend(data)
 
 # 设置按键监听
-def main():
+def voice_control_thread():
     # 启动录音线程
+    logging.info("You can use the SPACE key to start/stop recording. And ESC to exit.")
     threading.Thread(target=record_audio, daemon=True).start()
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
 
 if __name__ == "__main__":
-    main()
+    voice_control_thread()

@@ -2,6 +2,7 @@ import tkinter as tk
 import cv2
 from .slime import DesktopPet
 from .handpose import HandPose, Hand
+from .voicecontrol import voice_control_thread
 
 class GlobalSetting():
     def __init__(self, root: tk.Tk):
@@ -9,6 +10,7 @@ class GlobalSetting():
         self.handpose = HandPose(root)
         self.hand = None
         self.root = root
+        self.root.bind("<Button-1>", self.slime.start_drag)
         self.run()
         
 
@@ -46,6 +48,9 @@ class GlobalSetting():
                 self.slime.update()
         # with AudioToTextRecorder() as recorder:
         #     print("Transcription: ", recorder.text())
+
+    def voice_recognize(self):
+        voice_control_thread()
 
 if __name__ == "__main__":
     root = tk.Tk()

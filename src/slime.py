@@ -1,14 +1,17 @@
 from PIL import Image, ImageTk
 import tkinter as tk
-import time
+import time, os
 
 class DesktopPet:
     def __init__(self, root: tk.Tk, size = 110):
         self.root = root
         self.root.overrideredirect(True)  # 去掉窗口边框
         self.root.attributes("-topmost", True)  # 窗口始终在最前端
-        self.root.attributes("-transparent", "True")  # 设置透明背景
-        # self.root.attributes("-transparentcolor", "white") # Windows透明色
+        if os.name == 'nt':
+            self.root.attributes("-transparentcolor", "white") # Windows透明色  
+        else:  
+            self.root.attributes("-transparent", "True")  # 设置透明背景
+        
 
         # 窗口位置
         self.x = self.root.winfo_screenwidth() // 2
