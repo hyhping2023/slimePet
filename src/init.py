@@ -4,6 +4,7 @@ from .slime import DesktopPet
 from .handpose import HandPose, Hand
 from .voicecontrol import voice_control_thread
 import multiprocessing as mp
+import time
 
 class GlobalSetting():
     def __init__(self, root: tk.Tk):
@@ -35,10 +36,25 @@ class GlobalSetting():
 
     def hand_grab_slime(self):
         dis = ((self.hand.x - self.slime.x) ** 2 + (self.hand.y - self.slime.y) ** 2) ** 0.5
-        print(dis)
         if dis < 250:
-            self.slime.x = self.hand.x
-            self.slime.y = self.hand.y
+            if not self.slime.is_grabbed:  # 如果之前没有被抓住
+                self.slime.set_grabbed(True)
+            self.slime.set_position(self.hand.x, self.hand.y)
+        else:
+            if self.slime.is_grabbed:  # 如果之前被抓住
+                self.slime.set_grabbed(False)
+                # 计算释放时的速度
+                current_time = time.time()
+                delta_time = current_time - self.slime.last_time
+                if delta_time > 0.001:
+                    # 增加速度计算的灵敏度
+                    speed_multiplier = 1.5
+                    self.slime.velocity_x = (self.hand.x - self.slime.last_x) / delta_time * speed_multiplier
+                    self.slime.velocity_y = (self.hand.y - self.slime.last_y) / delta_time * speed_multiplier
+                    # 限制最大速度
+                    max_speed = 1500  # 增加最大速度限制
+                    self.slime.velocity_x = max(min(self.slime.velocity_x, max_speed), -max_speed)
+                    self.slime.velocity_y = max(min(self.slime.velocity_y, max_speed), -max_speed)
 
     def load_voice_record(self,):
         if not os.path.exists(self.tmp_dir):
@@ -56,14 +72,10 @@ class GlobalSetting():
     def update(self):
         # 获取手部位置关键点
         self.hand_update()
-        self.slime.update()
         if self.hand is not None:
-            # print(self.hand.x, self.hand.y)
-            print(self.slime.x, self.slime.y)
-            print(self.hand.is_grab())
             if self.hand.is_grab():
                 self.hand_grab_slime()
-                self.slime.update()
+        self.slime.update()
         # with AudioToTextRecorder() as recorder:
         #     print("Transcription: ", recorder.text())
 
