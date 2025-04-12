@@ -1,5 +1,5 @@
 import tkinter as tk
-import os
+import os, math
 from .slime import DesktopPet
 from .handpose import HandPose, Hand
 from .voicecontrol import voice_control_thread
@@ -12,19 +12,28 @@ class GlobalSetting():
         self.hand = None
         self.root = root
         # 将语音控制与按键空格绑定
-        # self.voice_recognize()
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
         self.prev_content = "" 
-        mp.Process(target=voice_control_thread).start()
+        # 语音交互模块进程
+        # mp.Process(target=voice_control_thread).start()
         self.run()
         
 
     def run(self):
         self.update()
-        self.load_voice_record()
+        # self.load_voice_record()
         self.root.after(16, self.run)
 
     def hand_update(self):
+        # 通过中指计算当前收的角度
+        def angle_calculate(point1, point2):
+            x1, y1 = point1
+            x2, y2 = point2
+            print(x1, y1, x2, y2)
+            angle = math.asin((y2 - y1) / (x2 - x1))
+            return angle
+        if self.hand is not None:
+            print(angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2]), self.hand.finger_info['middle'][-1][:2])
         # 获取当前识别到的手
         hands = self.handpose.get_hand_landmarks()
         if len(hands) == 0:
