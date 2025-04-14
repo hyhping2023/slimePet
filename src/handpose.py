@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import warnings
-import tkinter as tk
 
 class Hand:
     def __init__(self, hand_landmarks:dict):
@@ -53,7 +52,7 @@ class HandPose:
     '''
     自己面朝的左上角为(0, 0)点，x轴向右，y轴向下
     '''
-    def __init__(self, root:tk.Tk):
+    def __init__(self, screen_width:int, screen_height:int):
         # 初始化MediaPipe Hands
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands()
@@ -61,8 +60,9 @@ class HandPose:
         # 打开摄像头
         self.cap = cv2.VideoCapture(0)
         # 获取屏幕分辨率
-        self.screen_width = root.winfo_screenwidth()
-        self.screen_height = root.winfo_screenheight()
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        # 设置摄像头分辨率
         
 
     # 得到手部位置关键点
@@ -114,25 +114,5 @@ class HandPose:
         return []
     
 if __name__ == "__main__":
-    root = tk.Tk()
-    handpose = HandPose(root)
-    mp_drawing = mp.solutions.drawing_utils
-    mp_hands = mp.solutions.hands
-    while True:
-        hands, frame, hand_landmarks = handpose.get_hand_landmarks()
-        if len(hands) == 0:
-            continue
-        print(hands[0]['thumb'][0][:2])
-        # 画出手部关键点
-        mp_drawing.draw_landmarks(
-            frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
-        )
-        cv2.imshow("Hand Gesture Recognition", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-        # print(hands)
-        # print(handpose.screen_width, handpose.screen_height)
-        # import time
-        # time.sleep(0.1)
-    cv2.destroyAllWindows()
+    handpose = HandPose(1920, 1080)
         

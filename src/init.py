@@ -5,6 +5,8 @@ from .handpose import HandPose, Hand
 from .voicecontrol import voice_control_thread
 import multiprocessing as mp
 import time
+from PIL import Image, ImageTk
+
 
 class GlobalSetting():
     def __init__(self, root: tk.Tk):
@@ -12,11 +14,21 @@ class GlobalSetting():
         self.handpose = HandPose(root)
         self.hand = None
         self.root = root
+        self.root.geometry(f"{self.root.winfo_screenwidth()}x{self.root.winfo_screenheight()}+0+0")
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
         self.prev_content = "" 
         # 语音交互模块进程
-        # mp.Process(target=voice_control_thread).start()
+        mp.Process(target=voice_control_thread).start()
+
+        # 加载手部图片
+        self.hand_grab_picture = ImageTk.PhotoImage(Image.open("asset/hand_grasp.png").resize((100, 100), Image.BICUBIC))
+        self.hand_loose_picture = ImageTk.PhotoImage(Image.open("asset/hand_loose.png").resize((100, 100), Image.BICUBIC))
+        self.hand_label = tk.Label(self.root, bg="white", highlightthickness=0)
+        self.hand_label.pack(fill=tk.NONE)
+        self.hand_label.config(width=100, height=100)
+        self.hand_label.config(image=self.hand_loose_picture)
+        
         self.run()
         
 
@@ -25,16 +37,23 @@ class GlobalSetting():
         # self.load_voice_record()
         self.root.after(16, self.run)
 
+    def hand_draw(self):
+        if self.hand is not None:
+            print('hand x:', self.hand.x, 'hand y:', self.hand.y)
+            # self.hand_label.place(x=self.hand.x - 50, y=self.hand.y - 50)
+            self.hand_label.config(image=self.hand_grab_picture if self.hand.is_grab() else self.hand_loose_picture)
+    
+
     def hand_update(self):
         # 通过中指计算当前收的角度
         def angle_calculate(point1, point2):
             x1, y1 = point1
             x2, y2 = point2
-            print(x1, y1, x2, y2)
-            angle = math.asin((y2 - y1) / (x2 - x1))
+            length = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+            angle = math.asin((y2 - y1) / (x2 - x1)/ length)
             return angle
-        if self.hand is not None:
-            print(angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2]), self.hand.finger_info['middle'][-1][:2])
+        # if self.hand is not None:
+        #     print(angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2]), self.hand.finger_info['middle'][-1][:2])
         # 获取当前识别到的手
         hands = self.handpose.get_hand_landmarks()
         if len(hands) == 0:
@@ -85,6 +104,7 @@ class GlobalSetting():
             if self.hand.is_grab():
                 self.hand_grab_slime()
         self.slime.update()
+        self.hand_draw()
         # with AudioToTextRecorder() as recorder:
         #     print("Transcription: ", recorder.text())
 

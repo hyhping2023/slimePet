@@ -43,7 +43,7 @@ def stop_recording():
             audio = r.record(source)
             text = r.recognize_google(audio, language='zh-CN')
             write_to_file(text)
-            print("识别结果：", text)
+            # print("识别结果：", text)
     except sr.UnknownValueError:
         print("无法识别的语音")
     except sr.RequestError:
@@ -72,8 +72,6 @@ def on_press(key):
         exit()
 
 def write_to_file(data:str):
-    print("写入文件：", data)
-    print("临时文件路径：", tmp_dir)
     with open(tmp_dir, "w") as f:
         f.write(data)
 
