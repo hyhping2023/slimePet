@@ -69,10 +69,14 @@ class MyPet(QWidget):
 
         # 加载图片
         self.pet_image = QLabel(self)
-        pet_picture = QPixmap('asset/slime.png')
-        scaled_pixmap = pet_picture.scaled(QSize(int(pet_picture.width()*self.scale_factor), 
-                                                 int(pet_picture.height()*self.scale_factor)), Qt.KeepAspectRatio)
-        self.pet_image.setPixmap(scaled_pixmap)
+        self.movie = QMovie('asset/slime.gif')
+        # 缩放GIF
+        self.movie.setScaledSize(QSize(
+            int(self.movie.scaledSize().width() * self.scale_factor),
+            int(self.movie.scaledSize().height() * self.scale_factor)
+        ))
+        self.pet_image.setMovie(self.movie)
+        self.movie.start()  # 开始播放动画
         self.pet_image.setGeometry(self.width//2, self.height//2, 110, 110)
 
         # 加载手的图片
@@ -204,7 +208,8 @@ class MyPet(QWidget):
         # 检查是否按下了 ESC 键
         if event.key() == Qt.Key_Escape:
             self.close()  # 关闭窗口
-            QApplication.quit()  # 退出整个应用程序
+            QApplication.quit() 
+            sys.exit(0) # 退出整个应用程序
     
     def __del__(self):
         self.voice_control_process.terminate()
