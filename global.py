@@ -59,6 +59,9 @@ class MyPet(QWidget):
         self.voice_control_process.start()
         # 记录slime0.2s前的速度，便于丢出
         self.prev_velocity = (time.time(), (0, 0))
+        # 记录当前时间
+        self.prev_time = time.time()
+
         self.run(1000//fps)  # 设置帧率
 
     def initUI(self):
@@ -185,6 +188,10 @@ class MyPet(QWidget):
         if self.hand is not None:
             self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
             self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
+        if time.time() - self.prev_time > 5:
+            self.handpose.record(clear=True)
+            self.prev_time = time.time()
+                
 
     def mousePressEvent(self, event):
         # 记录鼠标按下时的位置
@@ -220,6 +227,6 @@ class MyPet(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    pet = MyPet(fps=30)
+    pet = MyPet(fps=120)
     pet.show()
     sys.exit(app.exec_())
