@@ -15,7 +15,6 @@ class Hand:
 
         # physics properties
         self.x, self.y = self.finger_info["middle"][0][:2]
-        self.omega = 0
 
 
     def is_grab(self):

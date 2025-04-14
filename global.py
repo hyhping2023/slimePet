@@ -19,7 +19,7 @@ def get_screen_resolution():
     return width, height
 
 class MyPet(QWidget):
-    def __init__(self, scale_factor=1.0):
+    def __init__(self, scale_factor=1.0, fps:int = 120):
         super().__init__()
         width, height = get_screen_resolution()
         # 设置窗口分辨率
@@ -31,6 +31,8 @@ class MyPet(QWidget):
         # 初始化工具
         self.slime = DesktopPet(self.pet_image.width(), width, height)
         self.handpose = HandPose(width, height)
+        self.hand = None
+        self.hand_angle = 0
         # 初始化监听模块
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
@@ -39,7 +41,7 @@ class MyPet(QWidget):
         self.voice_control_process = mp.Process(target=voice_control_thread)
         self.voice_control_process.start()
 
-        self.run()
+        self.run(1000//fps)  # 设置帧率
 
     def initUI(self):
         # 设置窗口属性
@@ -80,13 +82,28 @@ class MyPet(QWidget):
     def hand_update(self):
         # 通过中指计算当前收的角度
         def angle_calculate(point1, point2):
+            """
+            Calculate the angle between two points in 2D space.
+            The angle is measured relative to the horizontal direction to the left.
+            角度是顺时针的
+            """
             x1, y1 = point1
             x2, y2 = point2
-            length = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
-            angle = math.asin((y2 - y1) / (x2 - x1)/ length)
+            angle = math.atan((y2 - y1) / (x2 - x1 + 1e-8)) * 180 / math.pi
+            # 接下来计算手相对于水平向左的角度
+            if x1 < x2:
+                angle += 180
+            while angle < 0:
+                angle += 360
+            while angle > 360:
+                angle -= 360
             return angle
-        # if self.hand is not None:
-        #     print(angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2]), self.hand.finger_info['middle'][-1][:2])
+        if self.hand is not None:
+            hand_angle = angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2])
+            rotate_angle = hand_angle - self.hand_angle
+            self.hand_grasp_image.setStyleSheet(f"transform: rotate({rotate_angle}deg);")
+            self.hand_loose_image.setStyleSheet(f"transform: rotate({rotate_angle}deg);")
+            self.hand_angle = hand_angle
         # 获取当前识别到的手
         hands = self.handpose.get_hand_landmarks()
         if len(hands) == 0:
@@ -144,11 +161,11 @@ class MyPet(QWidget):
                 self.hand_loose_image.setVisible(True)
         self.slime.update()
 
-    def run(self):
+    def run(self, frametime:int = 1000//120):
         # 设置动画效果
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate)
-        self.timer.start(33)  # 每秒更新一次
+        self.timer.start(frametime)  # 120 fps
 
     def animate(self):
         self.global_update()
