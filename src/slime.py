@@ -62,26 +62,6 @@ class DesktopPet:
         if len(self.position_history) > self.history_length:
             self.position_history.pop(0)
 
-    def calculate_velocity(self):
-        if len(self.position_history) < 2:
-            return 0, 0
-        
-        # 计算总位移和时间
-        total_dx = 0
-        total_dy = 0
-        total_time = 0
-        
-        for i in range(1, len(self.position_history)):
-            x1, y1, t1 = self.position_history[i-1]
-            x2, y2, t2 = self.position_history[i]
-            total_dx += x2 - x1
-            total_dy += y2 - y1
-            total_time += t2 - t1
-        
-        if total_time > 0:
-            return total_dx / total_time, total_dy / total_time
-        return 0, 0
-
     def update(self,):
         # 更新宠物位置和显示
         current_time = time.time()

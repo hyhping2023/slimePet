@@ -1,6 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel
-from PyQt5.QtGui import QPixmap, QCursor
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import os, math, time
 from src.slime import DesktopPet
@@ -18,6 +18,24 @@ def get_screen_resolution():
     height = screen_size.height()
     return width, height
 
+class QPicture(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.pixmap = None
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setStyleSheet("background-color: transparent;")
+        self.angle = 0
+
+    def paintEvent(self, event):
+        # 绘制旋转后的图片
+        painter = QPainter(self)
+        painter.save()
+        painter.translate(self.width() / 2, self.height() / 2)
+        painter.rotate(self.angle)
+        painter.translate(-self.width() / 2, -self.height() / 2)
+        painter.drawPixmap(0, 0, self.pixmap)
+        painter.restore()
+
 class MyPet(QWidget):
     def __init__(self, scale_factor=1.0, fps:int = 120):
         super().__init__()
@@ -32,7 +50,6 @@ class MyPet(QWidget):
         self.slime = DesktopPet(self.pet_image.width(), width, height)
         self.handpose = HandPose(width, height)
         self.hand = None
-        self.hand_angle = 0
         # 初始化监听模块
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
@@ -40,7 +57,8 @@ class MyPet(QWidget):
         # 语音识别模块进程
         self.voice_control_process = mp.Process(target=voice_control_thread)
         self.voice_control_process.start()
-
+        # 记录slime0.2s前的速度，便于丢出
+        self.prev_velocity = (time.time(), (0, 0))
         self.run(1000//fps)  # 设置帧率
 
     def initUI(self):
@@ -58,21 +76,24 @@ class MyPet(QWidget):
         self.pet_image.setGeometry(self.width//2, self.height//2, 110, 110)
 
         # 加载手的图片
-        self.hand_grasp_image = QLabel(self)
+        self.hand_grasp_image = QPicture(self)
         hand_grasp_picture = QPixmap('asset/hand_grasp.png')
         scaled_pixmap = hand_grasp_picture.scaled(QSize(int(hand_grasp_picture.width()*self.scale_factor),
                                                         int(hand_grasp_picture.height()*self.scale_factor)), Qt.KeepAspectRatio)
-        self.hand_grasp_image.setPixmap(scaled_pixmap)
-        self.hand_grasp_image.setGeometry(self.width//4, self.height//4, scaled_pixmap.width(), scaled_pixmap.height())
+        # self.hand_grasp_image.setPixmap(scaled_pixmap)
+        self.hand_grasp_image.pixmap = scaled_pixmap
+        max_size = max(scaled_pixmap.width(), scaled_pixmap.height())
+        self.hand_grasp_image.setGeometry(self.width//4, self.height//4, max_size, max_size)
         self.hand_grasp_image.setAttribute(Qt.WA_TranslucentBackground)
         self.hand_grasp_image.setVisible(False)
 
-        self.hand_loose_image = QLabel(self)
+        self.hand_loose_image = QPicture(self)
         hand_loose_picture = QPixmap('asset/hand_loose.png')
         scaled_pixmap = hand_loose_picture.scaled(QSize(int(hand_loose_picture.width()*self.scale_factor),
                                                         int(hand_loose_picture.height()*self.scale_factor)), Qt.KeepAspectRatio)
-        self.hand_loose_image.setPixmap(scaled_pixmap)
-        self.hand_loose_image.setGeometry(self.width//4, self.height//4, scaled_pixmap.width(), scaled_pixmap.height())
+        # self.hand_loose_image.setPixmap(scaled_pixmap)
+        self.hand_loose_image.pixmap = scaled_pixmap
+        self.hand_loose_image.setGeometry(self.width//4, self.height//4, max_size, max_size)
         self.hand_loose_image.setAttribute(Qt.WA_TranslucentBackground)
         self.hand_loose_image.setVisible(True)
 
@@ -100,9 +121,8 @@ class MyPet(QWidget):
             return angle
         if self.hand is not None:
             hand_angle = angle_calculate(self.hand.finger_info['middle'][0][:2], self.hand.finger_info['middle'][-1][:2])
-            rotate_angle = hand_angle - self.hand_angle
-            self.hand_grasp_image.setStyleSheet(f"transform: rotate({rotate_angle}deg);")
-            self.hand_loose_image.setStyleSheet(f"transform: rotate({rotate_angle}deg);")
+            self.hand_grasp_image.angle = hand_angle
+            self.hand_loose_image.angle = hand_angle
             self.hand_angle = hand_angle
         # 获取当前识别到的手
         hands = self.handpose.get_hand_landmarks()
@@ -123,18 +143,6 @@ class MyPet(QWidget):
         else:
             if self.slime.is_grabbed:  # 如果之前被抓住
                 self.slime.set_grabbed(False)
-                # 计算释放时的速度
-                current_time = time.time()
-                delta_time = current_time - self.slime.last_time
-                if delta_time > 0.001:
-                    # 增加速度计算的灵敏度
-                    speed_multiplier = 1.5
-                    self.slime.velocity_x = (self.hand.x - self.slime.last_x) / delta_time * speed_multiplier
-                    self.slime.velocity_y = (self.hand.y - self.slime.last_y) / delta_time * speed_multiplier
-                    # 限制最大速度
-                    max_speed = 1500  # 增加最大速度限制
-                    self.slime.velocity_x = max(min(self.slime.velocity_x, max_speed), -max_speed)
-                    self.slime.velocity_y = max(min(self.slime.velocity_y, max_speed), -max_speed)
 
     def load_voice_record(self,):
         if not os.path.exists(self.tmp_dir):
@@ -207,6 +215,6 @@ class MyPet(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    pet = MyPet()
+    pet = MyPet(fps=30)
     pet.show()
     sys.exit(app.exec_())
