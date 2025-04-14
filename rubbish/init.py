@@ -1,8 +1,8 @@
 import tkinter as tk
 import os, math
-from .slime import DesktopPet
-from .handpose import HandPose, Hand
-from .voicecontrol import voice_control_thread
+from ..src.slime import DesktopPet
+from ..src.handpose import HandPose, Hand
+from ..src.voicecontrol import voice_control_thread
 import multiprocessing as mp
 import time
 from PIL import Image, ImageTk
