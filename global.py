@@ -57,6 +57,10 @@ class MyPet(QWidget):
         # 初始化监听模块
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
+        if os.path.exists(self.tmp_dir):
+            # 删除临时文件
+            with open(self.tmp_dir, "w") as f:
+                f.write("")
         self.prev_content = "" 
         # 语音识别模块进程
         self.voice_control_process = mp.Process(target=voice_control_thread)
@@ -199,9 +203,9 @@ class MyPet(QWidget):
                 self.free_times += 1
             if self.free_times > 5:
                 self.free_times = 0
-                thread = threading.Thread(target=self.emotion_assist, daemon=True)
-                thread.start()
-                self.threads.append(thread)
+                # thread = threading.Thread(target=self.emotion_assist, daemon=True)
+                # thread.start()
+                # self.threads.append(thread)
 
     def run(self, frametime:int = 1000//120):
         # 设置动画效果
@@ -217,32 +221,36 @@ class MyPet(QWidget):
         self.handpose.record(clear=True)
         try:
             emotion = requests.post('http://localhost:8001', json={}, timeout=10).json()['result']
-            print("当前情绪：", emotion)
+            # print("当前情绪：", emotion)
             self.user_emotion = emotion
         except:
             pass
 
-    def emotion_assist(self):
-        prompt = EMOTION_PROMPT.format(self.user_emotion)
-        response = generate(prompt)
-        self.threads.append(speak(response))
+    # def emotion_assist(self):
+    #     prompt = EMOTION_PROMPT.format(self.user_emotion)
+    #     response = generate(prompt)
+    #     self.threads.append(speak(response))
 
     def talk(self):
         response = generate(self.prev_content)
         self.threads.append(speak(response))
 
     def mousePressEvent(self, event):
-        # 记录鼠标按下时的位置
+        # 鼠标按下时的事件
         self.oldPos = event.globalPos()
 
     def mouseMoveEvent(self, event):
         # 判断鼠标在不在pet的范围内
-        if event.x() < self.pet_image.x() or event.x() > self.pet_image.x() + self.pet_image.width() or event.y() < self.pet_image.y() or event.y() > self.pet_image.y() + self.pet_image.height():
+        if event.x() < self.pet_image.x() or event.x() > self.pet_image.x() + self.pet_image.width():
+            return
+        if event.y() < self.pet_image.y() or event.y() > self.pet_image.y() + self.pet_image.height():
             return
         # 计算鼠标移动的偏移量
         delta = QPoint(event.globalPos() - self.oldPos)
         # 更新窗口位置
         self.pet_image.setGeometry(self.pet_image.x() + delta.x(), self.pet_image.y() + delta.y(), self.pet_image.width(), self.pet_image.height())
+        self.slime.x = self.pet_image.x()
+        self.slime.y = self.pet_image.y()
         self.oldPos = event.globalPos()
 
     def mouseReleaseEvent(self, event):
@@ -269,11 +277,9 @@ class MyPet(QWidget):
         self.voice_control_process.join()
         # 关闭语音识别进程
         self.voice_control_process.close()
-        # 删除临时文件
-        os.remove(self.tmp_dir)
         # 删除全部线程
         for thread in self.threads:
-            thread.join()
+            thread.stop()
 
 
 if __name__ == '__main__':

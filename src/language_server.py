@@ -4,9 +4,11 @@ EMOTION_PROMPT = "You are a helpful desktop pet. You should try your best to ser
 
 def generate(prompt):
     response = requests.post("http://localhost:11434/api/generate", json={
-        "model": "qwen2.5:0.5b",
+        "model": "qwen2.5:1.5b",
         "prompt": prompt,
-        "stream": False
+        "stream": False,
+        "temperature": 0.7,
+        "max_tokens": 512,
     })
     return response.json()['response']
 
