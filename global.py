@@ -6,11 +6,25 @@ import os, math, time
 from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
-from src.language_server import generate, EMOTION_PROMPT
+from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY
 from src.voicespeak import speak
+from src.face import predict
 import multiprocessing as mp
 import threading
-import requests
+import json
+
+app = QApplication(sys.argv)
+# TODO
+emotion = {
+    "surprise": QMovie('asset/slime.gif'),
+    "angry": QMovie('asset/slime.gif'),
+    "happy": QMovie('asset/slime.gif'),
+    "sad": QMovie('asset/slime.gif'),
+    "neutral": QMovie('asset/slime.gif'),
+}
+# 清除聊天历史
+with open(CHAT_HISTORY, "w", encoding="utf-8") as f:
+    f.write("")
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -199,6 +213,15 @@ class MyPet(QWidget):
             thread.start()
             self.threads.append(thread)
             self.prev_time = time.time()
+            if self.slime.change_emotion():
+                self.movie.stop()
+                self.movie = emotion[self.slime.emotion]
+                self.movie.setScaledSize(QSize(
+                    int(self.movie.scaledSize().width() * self.scale_factor),
+                    int(self.movie.scaledSize().height() * self.scale_factor)
+                ))
+                self.pet_image.setMovie(self.movie)
+                self.movie.start()
             if self.hand is None:
                 self.free_times += 1
             if self.free_times > 5:
@@ -219,17 +242,20 @@ class MyPet(QWidget):
                 
     def emotion_query(self):
         self.handpose.record(clear=True)
-        try:
-            emotion = requests.post('http://localhost:8001', json={}, timeout=10).json()['result']
-            # print("当前情绪：", emotion)
-            self.user_emotion = emotion
-        except:
-            pass
+        emotion = predict()['result']
+        # print("当前情绪：", emotion)
+        self.user_emotion = emotion
+        # try:
+        #     emotion = requests.post('http://localhost:8001', json={}, timeout=10).json()['result']
+        #     # print("当前情绪：", emotion)
+        #     self.user_emotion = emotion
+        # except:
+        #     pass
 
-    # def emotion_assist(self):
-    #     prompt = EMOTION_PROMPT.format(self.user_emotion)
-    #     response = generate(prompt)
-    #     self.threads.append(speak(response))
+    def emotion_assist(self):
+        prompt = EMOTION_PROMPT.format(self.user_emotion)
+        response = generate(prompt)
+        self.threads.append(speak(response))
 
     def talk(self):
         response = generate(self.prev_content)
@@ -273,17 +299,13 @@ class MyPet(QWidget):
                 self.threads.remove(thread)
     
     def __del__(self):
-        self.voice_control_process.terminate()
+        self.voice_control_process.kill()
         self.voice_control_process.join()
         # 关闭语音识别进程
         self.voice_control_process.close()
-        # 删除全部线程
-        for thread in self.threads:
-            thread.stop()
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
     pet = MyPet(fps=120)
     pet.show()
     sys.exit(app.exec_())

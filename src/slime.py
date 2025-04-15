@@ -1,5 +1,14 @@
 from PIL import Image, ImageTk
 import time, os
+import random
+
+types = {
+    0: "surprise",
+    1: "angry",
+    2: "happy",
+    3: "sad",
+    4: "neutral",
+}
 
 class DesktopPet:
     def __init__(self, size, screen_width, screen_height):
@@ -37,6 +46,9 @@ class DesktopPet:
         self.deformation_direction = 0  # 形变方向（0: 无, 1: 水平, 2: 垂直）
         self.deformation_speed = 0.5  # 形变恢复速度
         self.max_deformation = 0.5  # 最大形变程度
+
+        # 情感
+        self.emotion = 'neutral'
     
 
     def start_drag(self, event):
@@ -61,6 +73,15 @@ class DesktopPet:
         self.position_history.append((x, y, current_time))
         if len(self.position_history) > self.history_length:
             self.position_history.pop(0)
+
+    def change_emotion(self):
+        if random.random() < 0.1: # 10%概率改变情感
+            new_emotion = random.choice(list(types.values()))
+            if new_emotion != self.emotion:
+                self.emotion = new_emotion
+                print(f"情感变化为: {self.emotion}")
+                return True
+        return False    
 
     def update(self,):
         # 更新宠物位置和显示

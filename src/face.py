@@ -47,7 +47,6 @@ confidence_threshold = 0.4
 
 app = FastAPI()
 
-@app.post('/')
 def predict():
     images = glob.glob("tmp/capture/*.png")
     if len(images) == 0:
@@ -58,7 +57,7 @@ def predict():
     with torch.no_grad():
         outputs = model(images)
         outputs = torch.softmax(outputs, dim=1)
-        print(outputs)
+        # print(outputs)
         # 当输出的最大值大于置信度阈值时，才进行预测
         confidences = torch.max(outputs, dim=1).values.cpu().numpy()
         if (confidences > confidence_threshold).sum() == 0:

@@ -5,7 +5,7 @@ import re
 def async_speak(text):
     engine = pyttsx3.init()
     engine.setProperty('rate', 250)
-    engine.setProperty('volume', 1)
+    engine.setProperty('volume', 1.5)
     voices = engine.getProperty('voices')
     engine.setProperty('voice', voices[0].id)
     engine.say(text)
