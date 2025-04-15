@@ -112,6 +112,28 @@ class HandPose:
             return [hands[0]]
         return []
     
+    def record(self, tmp_dir:str='tmp/capture', clear=False):
+        import os
+        if clear:
+            if not os.path.exists(tmp_dir):
+                pass
+            else:
+                for file in os.listdir(tmp_dir):
+                    os.remove(os.path.join(tmp_dir, file))
+        if not os.path.exists(tmp_dir):
+            os.makedirs(tmp_dir)
+        ret, frame = self.cap.read()
+        # 将frame缩小到原来的1/10
+        frame = cv2.resize(frame, (192, 108), interpolation=cv2.INTER_AREA)
+        if not ret:
+            warnings.warn("Failed to capture image from camera.")
+            return
+        # 把帧进行保存
+        i = 0
+        while os.path.exists(os.path.join(tmp_dir, f"capture_{i}.png")):
+            i += 1 
+        cv2.imwrite(os.path.join(tmp_dir, f"capture_{i}.png"), frame)
+
 if __name__ == "__main__":
     handpose = HandPose(1920, 1080)
         

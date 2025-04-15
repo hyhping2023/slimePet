@@ -43,10 +43,9 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
 ])
-confidence_threshold = 0.8
+confidence_threshold = 0.4
 
 app = FastAPI()
-
 
 @app.post('/')
 def predict():
@@ -59,16 +58,14 @@ def predict():
     with torch.no_grad():
         outputs = model(images)
         outputs = torch.softmax(outputs, dim=1)
+        print(outputs)
         # 当输出的最大值大于置信度阈值时，才进行预测
         confidences = torch.max(outputs, dim=1).values.cpu().numpy()
-        mask = confidences > confidence_threshold
-        predictions = torch.argmax(outputs, dim=1).cpu().numpy()
-        # 保留置信度大于阈值的预测结果
-        predictions = predictions[mask].max(axis=0)
-        return {"result": types[predictions] if len(predictions) > 0 else "No valid predictions"}
+        if (confidences > confidence_threshold).sum() == 0:
+            return {"result": "neutral"}
+        prediction = torch.max(outputs, dim=1).indices.cpu().numpy().item()
+        return {"result": types[prediction]}
 
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
-
-        

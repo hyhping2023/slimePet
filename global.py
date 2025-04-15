@@ -7,6 +7,7 @@ from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
 import multiprocessing as mp
+import requests
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -61,6 +62,9 @@ class MyPet(QWidget):
         self.prev_velocity = (time.time(), (0, 0))
         # 记录当前时间
         self.prev_time = time.time()
+        # 史莱姆状态
+        self.free = True
+        self.user_emotion = 'neutral'
 
         self.run(1000//fps)  # 设置帧率
 
@@ -188,10 +192,18 @@ class MyPet(QWidget):
         if self.hand is not None:
             self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
             self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
-        if time.time() - self.prev_time > 5:
-            self.handpose.record(clear=True)
+        if time.time() - self.prev_time > 1:
+            self.emotion_query()
             self.prev_time = time.time()
                 
+    def emotion_query(self):
+        self.handpose.record(clear=True)
+        try:
+            emotion = requests.post('http://localhost:8001', json={}, timeout=10).json()['result']
+            print("当前情绪：", emotion)
+            self.user_emotion = emotion
+        except:
+            pass
 
     def mousePressEvent(self, event):
         # 记录鼠标按下时的位置
@@ -212,8 +224,8 @@ class MyPet(QWidget):
         pass
 
     def keyPressEvent(self, event):
-        # 检查是否按下了 ESC 键
-        if event.key() == Qt.Key_Escape:
+        # 检查是否按下了 Q 键
+        if event.key() == Qt.Key_Q:
             self.close()  # 关闭窗口
             QApplication.quit() 
             sys.exit(0) # 退出整个应用程序
