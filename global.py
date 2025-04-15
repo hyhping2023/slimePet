@@ -6,7 +6,10 @@ import os, math, time
 from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
+from src.language_server import generate, EMOTION_PROMPT
+from src.voicespeak import speak
 import multiprocessing as mp
+import threading
 import requests
 
 def get_screen_resolution():
@@ -63,8 +66,10 @@ class MyPet(QWidget):
         # 记录当前时间
         self.prev_time = time.time()
         # 史莱姆状态
-        self.free = True
+        self.free_times = 0
         self.user_emotion = 'neutral'
+        # 线程和进程
+        self.threads = []
 
         self.run(1000//fps)  # 设置帧率
 
@@ -164,6 +169,7 @@ class MyPet(QWidget):
         if content != self.prev_content:
             self.prev_content = content
             print("读取到新内容：", content)
+            self.talk()
             return content
         return None
     
@@ -179,6 +185,23 @@ class MyPet(QWidget):
                 self.hand_grasp_image.setVisible(False)
                 self.hand_loose_image.setVisible(True)
         self.slime.update()
+        self.load_voice_record()
+        self.pet_image.setGeometry(int(self.slime.x), int(self.slime.y), self.pet_image.width(), self.pet_image.height())
+        if self.hand is not None:
+            self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
+            self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
+        if time.time() - self.prev_time > 1:
+            thread = threading.Thread(target=self.emotion_query, daemon=True)
+            thread.start()
+            self.threads.append(thread)
+            self.prev_time = time.time()
+            if self.hand is None:
+                self.free_times += 1
+            if self.free_times > 5:
+                self.free_times = 0
+                thread = threading.Thread(target=self.emotion_assist, daemon=True)
+                thread.start()
+                self.threads.append(thread)
 
     def run(self, frametime:int = 1000//120):
         # 设置动画效果
@@ -188,13 +211,7 @@ class MyPet(QWidget):
 
     def animate(self):
         self.global_update()
-        self.pet_image.setGeometry(int(self.slime.x), int(self.slime.y), self.pet_image.width(), self.pet_image.height())
-        if self.hand is not None:
-            self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
-            self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
-        if time.time() - self.prev_time > 1:
-            self.emotion_query()
-            self.prev_time = time.time()
+        self.thread_deleting()
                 
     def emotion_query(self):
         self.handpose.record(clear=True)
@@ -204,6 +221,15 @@ class MyPet(QWidget):
             self.user_emotion = emotion
         except:
             pass
+
+    def emotion_assist(self):
+        prompt = EMOTION_PROMPT.format(self.user_emotion)
+        response = generate(prompt)
+        self.threads.append(speak(response))
+
+    def talk(self):
+        response = generate(self.prev_content)
+        self.threads.append(speak(response))
 
     def mousePressEvent(self, event):
         # 记录鼠标按下时的位置
@@ -229,12 +255,25 @@ class MyPet(QWidget):
             self.close()  # 关闭窗口
             QApplication.quit() 
             sys.exit(0) # 退出整个应用程序
+
+    def thread_deleting(self):
+        # 删除所有线程
+        for thread in self.threads:
+            if thread.is_alive():
+                continue
+            else:
+                self.threads.remove(thread)
     
     def __del__(self):
         self.voice_control_process.terminate()
         self.voice_control_process.join()
         # 关闭语音识别进程
         self.voice_control_process.close()
+        # 删除临时文件
+        os.remove(self.tmp_dir)
+        # 删除全部线程
+        for thread in self.threads:
+            thread.join()
 
 
 if __name__ == '__main__':
