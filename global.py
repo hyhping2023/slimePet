@@ -8,7 +8,7 @@ from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
 from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY
 from src.voicespeak import speak
-from src.face import predict
+from src.face import facialExpression
 import multiprocessing as mp
 import threading
 import json
@@ -22,9 +22,6 @@ emotion = {
     "sad": QMovie('asset/slime.gif'),
     "neutral": QMovie('asset/slime.gif'),
 }
-# 清除聊天历史
-with open(CHAT_HISTORY, "w", encoding="utf-8") as f:
-    f.write("")
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -76,9 +73,14 @@ class MyPet(QWidget):
             with open(self.tmp_dir, "w") as f:
                 f.write("")
         self.prev_content = "" 
+        # 清除聊天历史
+        with open(CHAT_HISTORY, "w", encoding="utf-8") as f:
+            f.write("")
         # 语音识别模块进程
         self.voice_control_process = mp.Process(target=voice_control_thread)
         self.voice_control_process.start()
+        # 表情识别模块
+        self.facial_expression = facialExpression()
         # 记录slime0.2s前的速度，便于丢出
         self.prev_velocity = (time.time(), (0, 0))
         # 记录当前时间
@@ -88,6 +90,7 @@ class MyPet(QWidget):
         self.user_emotion = 'neutral'
         # 线程和进程
         self.threads = []
+        self.processes = []
 
         self.run(1000//fps)  # 设置帧率
 
@@ -242,7 +245,7 @@ class MyPet(QWidget):
                 
     def emotion_query(self):
         self.handpose.record(clear=True)
-        emotion = predict()['result']
+        emotion = self.facial_expression.predict()['result']
         # print("当前情绪：", emotion)
         self.user_emotion = emotion
         # try:
@@ -255,11 +258,11 @@ class MyPet(QWidget):
     def emotion_assist(self):
         prompt = EMOTION_PROMPT.format(self.user_emotion)
         response = generate(prompt)
-        self.threads.append(speak(response))
+        self.processes.append(speak(response))
 
     def talk(self):
         response = generate(self.prev_content)
-        self.threads.append(speak(response))
+        self.processes.append(speak(response))
 
     def mousePressEvent(self, event):
         # 鼠标按下时的事件
@@ -297,6 +300,13 @@ class MyPet(QWidget):
                 continue
             else:
                 self.threads.remove(thread)
+        for process in self.processes:
+            if process.is_alive():
+                continue
+            else:
+                process.terminate()
+                process.kill()
+                self.processes.remove(process)
     
     def __del__(self):
         self.voice_control_process.kill()
