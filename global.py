@@ -13,7 +13,6 @@ import multiprocessing as mp
 import threading
 import json
 
-app = QApplication(sys.argv)
 # TODO
 emotion = {
     "surprise": QMovie('asset/slime.gif'),
@@ -316,6 +315,7 @@ class MyPet(QWidget):
 
 
 if __name__ == '__main__':
+    app = QApplication(sys.argv)
     pet = MyPet(fps=120)
     pet.show()
     sys.exit(app.exec_())
