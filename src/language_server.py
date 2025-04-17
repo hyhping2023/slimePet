@@ -108,8 +108,8 @@ def tmp_picture_encode():
     return image_base64
 
 if __name__ == "__main__":
-    # prompt = "她和楪祈谁强一点"
-    # response = generate(prompt)
+    prompt = "她和楪祈谁强一点"
+    response = generate(prompt)
 
     emotion = "开心"
     response = scene_analyze(emotion)
