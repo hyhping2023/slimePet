@@ -11,7 +11,7 @@ client = Client(
     "http://localhost:11434/",
 )
 
-def generate(prompt, model="gemma3:4b"):
+def generate(prompt, model="gemma3:4b", new_chat=False):
     threads_queue = []
     with open(CHAT_HISTORY, "r", encoding="utf-8") as f:
         lines = f.readlines()
