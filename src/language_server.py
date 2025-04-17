@@ -2,7 +2,7 @@ import threading
 import json
 import base64
 from ollama import Client
-from voicespeak import async_speak, speak
+from .voicespeak import async_speak, speak
 
 EMOTION_PROMPT = "You are a helpful desktop pet. You should try your best to serve me. Your owner is {}. You should use your word to share your owner's feelings" 
 CHAT_HISTORY = "tmp/chat_history.jsonl"

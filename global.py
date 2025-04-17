@@ -33,6 +33,12 @@ def get_screen_resolution():
     height = screen_size.height()
     return width, height
 
+def emotion_assist(user_emotion):
+    result = scene_analyze(user_emotion)
+
+def talk(prev_content, new_chat=False):
+    response = generate(prev_content, new_chat=new_chat)
+
 class QPicture(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -90,7 +96,10 @@ class MyPet(QWidget):
         self.user_emotion = 'neutral'
         # 线程和进程
         self.threads = []
-        self.processes = []
+        self.talk_process = None
+        self.scene_process = None
+        # 当前状态
+        self.status = "free"
 
         self.run(1000//fps)  # 设置帧率
 
@@ -187,10 +196,12 @@ class MyPet(QWidget):
         with open(self.tmp_dir, "r") as f:
             # 读取文件内容
             content = f.read()
-        if content != self.prev_content:
+        if content != self.prev_content and self.status == "free":
+            self.status = 'busy_1'
             self.prev_content = content
             print("读取到新内容：", content)
-            self.talk()
+            self.talk_process = mp.Process(target=talk, args=(content,), daemon=True)
+            self.talk_process.start()
             return content
         return None
     
@@ -225,13 +236,15 @@ class MyPet(QWidget):
                 ))
                 self.pet_image.setMovie(self.movie)
                 self.movie.start()
-            if self.hand is None:
+            if self.status == "free":
                 self.free_times += 1
-            if self.free_times > 5:
+                print(self.status)
+            if self.free_times > 20 and self.status == "free":
                 self.free_times = 0
-                # process = mp.Process(target=self.emotion_assist, daemon=True, args=(self.user_emotion,))
-                # process.start()
-                # self.processes.append(process)
+                self.status = "busy_2"
+                process = mp.Process(target=emotion_assist, daemon=True, args=(self.user_emotion,))
+                process.start()
+                self.scene_process = process
 
     def run(self, frametime:int = 1000//120):
         # 设置动画效果
@@ -254,14 +267,6 @@ class MyPet(QWidget):
         #     self.user_emotion = emotion
         # except:
         #     pass
-
-    def emotion_assist(self):
-        result = scene_analyze(self.user_emotion)
-        speak(result)
-
-    def talk(self):
-        response = generate(self.prev_content)
-        self.processes.append(speak(response))
 
     def mousePressEvent(self, event):
         # 鼠标按下时的事件
@@ -299,19 +304,24 @@ class MyPet(QWidget):
                 continue
             else:
                 self.threads.remove(thread)
-        for process in self.processes:
-            if process.is_alive():
-                continue
-            else:
-                process.terminate()
-                process.kill()
-                self.processes.remove(process)
+        if self.scene_process is not None and not self.scene_process.is_alive():
+            self.scene_process = None
+            self.status = "free"
+        if self.talk_process is not None and not self.talk_process.is_alive():
+            self.talk_process = None
+            self.status = "free"
     
     def __del__(self):
         self.voice_control_process.kill()
         self.voice_control_process.join()
         # 关闭语音识别进程
         self.voice_control_process.close()
+        self.talk_process.kill()
+        self.talk_process.join()
+        self.scene_process.kill()
+        self.scene_process.join()
+        self.thread_deleting()
+
 
 
 if __name__ == '__main__':
