@@ -6,13 +6,14 @@ import os, math, time
 from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
-from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY
+from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze
 from src.voicespeak import speak
 from src.face import facialExpression
 import multiprocessing as mp
 import threading
 import json
 
+app = QApplication(sys.argv)
 # TODO
 emotion = {
     "surprise": QMovie('asset/slime.gif'),
@@ -228,9 +229,9 @@ class MyPet(QWidget):
                 self.free_times += 1
             if self.free_times > 5:
                 self.free_times = 0
-                # thread = threading.Thread(target=self.emotion_assist, daemon=True)
-                # thread.start()
-                # self.threads.append(thread)
+                # process = mp.Process(target=self.emotion_assist, daemon=True, args=(self.user_emotion,))
+                # process.start()
+                # self.processes.append(process)
 
     def run(self, frametime:int = 1000//120):
         # 设置动画效果
@@ -255,9 +256,8 @@ class MyPet(QWidget):
         #     pass
 
     def emotion_assist(self):
-        prompt = EMOTION_PROMPT.format(self.user_emotion)
-        response = generate(prompt)
-        self.processes.append(speak(response))
+        result = scene_analyze(self.user_emotion)
+        speak(result)
 
     def talk(self):
         response = generate(self.prev_content)
@@ -315,7 +315,6 @@ class MyPet(QWidget):
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
     pet = MyPet(fps=120)
     pet.show()
     sys.exit(app.exec_())
