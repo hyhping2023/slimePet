@@ -71,7 +71,7 @@ def create_average_sampled_ellipse(width, height, sample_image_path, output_path
 
     
 
-    # 绘制椭圆轮廓（黑色）
+    # 绘制椭圆轮廓（图片平均颜色）
     for y in range(height):
         for x in range(width):
             x0 = x - center_x
@@ -106,7 +106,6 @@ sample_image = input("请输入采样图片路径: ")
 for i in range(-3,4):
     width = 22+i
     height = 22-i
-    
     output_filename = f"{width}x{height}.png"
 
     create_average_sampled_ellipse(width, height, sample_image, output_filename)
