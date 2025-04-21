@@ -37,4 +37,4 @@ def add_background_with_original_speed(gif_path, bg_path, output_path):
     )
 
 # 调用示例
-add_background_with_original_speed("smile1.gif", "slime.png", "output.gif")
+add_background_with_original_speed("nauseated.gif", "default.png", "nauseated0.gif")
