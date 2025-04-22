@@ -74,13 +74,20 @@ class DesktopPet:
         if len(self.position_history) > self.history_length:
             self.position_history.pop(0)
 
-    def change_emotion(self):
-        if random.random() < 0.1: # 10%概率改变情感
-            new_emotion = random.choice(list(types.values()))
-            if new_emotion != self.emotion:
-                self.emotion = new_emotion
+    def change_emotion(self, user_emotion):
+        if user_emotion != self.emotion:
+            if random.random() < 0.8: # 80%概率改变情感
+                self.emotion = user_emotion
                 print(f"情感变化为: {self.emotion}")
                 return True
+            self.emotion = user_emotion
+        else:
+            if random.random() < 0.1: # 10%概率改变情感
+                new_emotion = random.choice(list(types.values()))
+                if new_emotion != self.emotion:
+                    self.emotion = new_emotion
+                    print(f"情感变化为: {self.emotion}")
+                    return True
         return False    
 
     def update(self,):

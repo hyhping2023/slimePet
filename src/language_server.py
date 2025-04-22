@@ -4,7 +4,6 @@ import base64
 from ollama import Client
 from .voicespeak import async_speak, speak
 
-EMOTION_PROMPT = "You are a helpful desktop pet. You should try your best to serve me. Your owner is {}. You should use your word to share your owner's feelings" 
 CHAT_HISTORY = "tmp/chat_history.jsonl"
 CHAT_HISTORY_MAX_LIMIT = 3 * 2 # 5 rounds of conversation
 client = Client(
@@ -30,7 +29,7 @@ def generate(prompt, model="gemma3:4b", new_chat=False):
         stream=True,
         options={
             "temperature": 0.2,
-            "num_predict": 512,
+            "num_predict": 256,
         }):
         stream = part_response['message']['content']
         print(stream, end='', flush=True)
@@ -75,16 +74,26 @@ def generate(prompt, model="gemma3:4b", new_chat=False):
 TASK_DESCRIPTION = """
 You are a helpful desktop pet. 
 You should try your best to serve me.
-I will tell you my current feelings might be {}.
+{}.
 And I will provide you with a screenshot.
 Please analyze the what I am doing and base on your understanding of me,
 and my current feelings, please give me a response within 50 words.
 Your response should not contains any information I have given you.
 You should behave as if you are my friend and behave as we are just talking.
 """
+
+EMOTION_PROMPT = { 
+    0: "Please judge my current feelings",
+    1: "My current feelings might be {}",
+}
+
 def scene_analyze(emotion, model="gemma3:4b"):
     image_base64 = tmp_picture_encode()
-    prompt = TASK_DESCRIPTION.format(emotion)
+    if emotion == 'neutral':
+        prompt = EMOTION_PROMPT[0]
+    else:
+        prompt = EMOTION_PROMPT[1].format(emotion)
+    prompt = TASK_DESCRIPTION.format(prompt)
     response = client.chat(
         model=model,
         messages=[
@@ -92,7 +101,7 @@ def scene_analyze(emotion, model="gemma3:4b"):
         ],
         stream=False,
         options={
-            "temperature": 0.2,
+            "temperature": 0.8,
             "num_predict": 128,
         },  
     )
@@ -100,6 +109,38 @@ def scene_analyze(emotion, model="gemma3:4b"):
     print("\nSpeed", response['eval_count']/response['eval_duration']*10**9, "tokens/s")
     speak(response['message']['content'])
     return response["message"]["content"]
+
+QUERY_PROMPT = """
+You are a helpful desktop pet. 
+You should try your best to serve me.
+Please analyze what my current emotion is.
+The possible emotions are:
+surprise, angry, happy, sad, neutral.
+If you don't know, please answer "neutral".
+Only one of the words "surprise, angry, happy, sad, neutral" is allowed.
+"""
+emotion_types = ["neutral", "surprise", "angry", "happy", "sad", "neutral",]
+
+def llm_emotion_query():
+    image_base64 = tmp_picture_encode()
+    response = client.chat(
+        model="gemma3:4b",
+        messages=[
+            {"role": "user", "content": QUERY_PROMPT, "images": [image_base64]},
+        ],
+        stream=False,
+        options={
+            "temperature": 0.2,
+            "num_predict": 128,
+        },  
+    )
+    response = response['message']['content']
+    for emotion in emotion_types:
+        if emotion in response.lower():
+            print("Emotion:", emotion)
+            break
+    return emotion
+
 
 def tmp_picture_encode():
     with open("tmp/capture/capture_0.png", "rb") as f:

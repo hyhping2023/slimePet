@@ -6,7 +6,7 @@ import os, math, time
 from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
-from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze
+from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze, llm_emotion_query
 from src.voicespeak import speak
 from src.face import facialExpression
 import multiprocessing as mp
@@ -16,10 +16,10 @@ import json
 app = QApplication(sys.argv)
 # TODO
 emotion = {
-    "surprise": QMovie('asset/slime.gif'),
-    "angry": QMovie('asset/slime.gif'),
-    "happy": QMovie('asset/slime.gif'),
-    "sad": QMovie('asset/slime.gif'),
+    "surprise": QMovie('asset/cool0.gif'),
+    "angry": QMovie('asset/worried0.gif'),
+    "happy": QMovie('asset/cute0.gif'),
+    "sad": QMovie('asset/aww0.gif'),
     "neutral": QMovie('asset/slime.gif'),
 }
 
@@ -223,11 +223,12 @@ class MyPet(QWidget):
             self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
             self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
         if time.time() - self.prev_time > 1:
+            print(self.status)
             thread = threading.Thread(target=self.emotion_query, daemon=True)
             thread.start()
             self.threads.append(thread)
             self.prev_time = time.time()
-            if self.slime.change_emotion():
+            if self.slime.change_emotion(self.user_emotion):
                 self.movie.stop()
                 self.movie = emotion[self.slime.emotion]
                 self.movie.setScaledSize(QSize(
@@ -238,7 +239,6 @@ class MyPet(QWidget):
                 self.movie.start()
             if self.status == "free":
                 self.free_times += 1
-                print(self.status)
             if self.free_times > 20 and self.status == "free":
                 self.free_times = 0
                 self.status = "busy_2"
@@ -259,6 +259,7 @@ class MyPet(QWidget):
     def emotion_query(self):
         self.handpose.record(clear=True)
         emotion = self.facial_expression.predict()['result']
+        # emotion = llm_emotion_query()
         # print("当前情绪：", emotion)
         self.user_emotion = emotion
         # try:
@@ -316,10 +317,12 @@ class MyPet(QWidget):
         self.voice_control_process.join()
         # 关闭语音识别进程
         self.voice_control_process.close()
-        self.talk_process.kill()
-        self.talk_process.join()
-        self.scene_process.kill()
-        self.scene_process.join()
+        if self.talk_process is not None:
+            self.talk_process.kill()
+            self.talk_process.join()
+        if self.scene_process is not None:
+            self.scene_process.kill()
+            self.scene_process.join()
         self.thread_deleting()
 
 
