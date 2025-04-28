@@ -49,6 +49,20 @@ class DesktopPet:
 
         # 情感
         self.emotion = 'neutral'
+
+        # 运动速度相关
+        self.speed_threshold = 300  # 速度阈值（像素/秒）
+        self.high_speed_start_time = 0  # 开始高速运动的时间
+        self.high_speed_duration = 0.5  # 需要保持高速运动的时间
+        
+        # 碰撞相关
+        self.collision_count = 0  # 当前运动周期内的碰撞次数
+        self.last_collision_time = 0  # 上次碰撞时间
+        self.collision_reset_time = 5  # 碰撞状态重置时间（秒）
+        
+        # 状态标志
+        self.is_high_speed = False  # 是否处于高速状态
+        self.is_nauseated = False  # 是否处于眩晕状态
     
 
     def start_drag(self, event):
@@ -105,6 +119,34 @@ class DesktopPet:
                 self.velocity_x = 0
                 self.velocity_y = 0
             
+            # 计算当前速度
+            current_speed = ((self.velocity_x**2 + self.velocity_y**2)**0.5)
+            
+            # 检测碰撞
+            if (self.x <= 0 or self.x >= self.screen_width - self.size or 
+                self.y <= 0 or self.y >= self.screen_height - self.size):
+                if current_time - self.last_collision_time > 0.1:  # 防重复计数
+                    self.collision_count += 1
+                    self.last_collision_time = current_time
+
+            # 检测高速状态
+            if current_speed > self.speed_threshold:
+                if not self.is_high_speed:
+                    self.high_speed_start_time = current_time
+                    self.is_high_speed = True
+            else:
+                if self.is_high_speed:
+                    # 检查是否需要进入眩晕状态
+                    if self.collision_count >= 3 and not self.is_nauseated:
+                        self.is_nauseated = True
+                        self.nauseated_start_time = current_time
+                    self.is_high_speed = False
+                    self.collision_count = 0  # 重置碰撞计数
+
+            # 检查眩晕状态是否结束
+            if self.is_nauseated and current_time - self.nauseated_start_time > self.collision_reset_time:
+                self.is_nauseated = False
+
             # 更新位置
             if delta_time > 0.001:  # 防止除零错误
                 self.x += self.velocity_x * delta_time

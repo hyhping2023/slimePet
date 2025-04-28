@@ -19,7 +19,7 @@ emotion = {
     "surprise": QMovie('asset/cool0.gif'),
     "angry": QMovie('asset/worried0.gif'),
     "happy": QMovie('asset/cute0.gif'),
-    "sad": QMovie('asset/aww0.gif'),
+    "sad": QMovie('asset/worried0.gif'),
     "neutral": QMovie('asset/slime.gif'),
 }
 
@@ -102,6 +102,16 @@ class MyPet(QWidget):
         self.status = "free"
 
         self.run(1000//fps)  # 设置帧率
+        # 添加新的GIF资源
+        self.high_speed_gif = QMovie('asset/aww0.gif')
+        self.nauseated_gif = QMovie('asset/nauseated0.gif')
+        
+        # 缩放新GIF
+        for gif in [self.high_speed_gif, self.nauseated_gif]:
+            gif.setScaledSize(QSize(
+                int(gif.scaledSize().width() * self.scale_factor),
+                int(gif.scaledSize().height() * self.scale_factor)
+            ))
 
     def initUI(self):
         # 设置窗口属性
@@ -228,15 +238,35 @@ class MyPet(QWidget):
             thread.start()
             self.threads.append(thread)
             self.prev_time = time.time()
-            if self.slime.change_emotion(self.user_emotion):
+
+            # 更新表情显示
+            if self.slime.is_nauseated:
+                target_gif = self.nauseated_gif
+                print('1')
+            elif self.slime.is_high_speed:
+                target_gif = self.high_speed_gif
+                print('2')
+            else:
+                target_gif = emotion[self.slime.emotion]
+                print('3')
+                if self.slime.change_emotion(self.user_emotion):
+                    print('4')
+                    self.movie.stop()
+                    self.movie = emotion[self.slime.emotion]
+                    self.movie.setScaledSize(QSize(
+                        int(self.movie.scaledSize().width() * self.scale_factor),
+                        int(self.movie.scaledSize().height() * self.scale_factor)
+                    ))
+                    self.pet_image.setMovie(self.movie)
+                    self.movie.start()
+
+            if self.movie != target_gif:
                 self.movie.stop()
-                self.movie = emotion[self.slime.emotion]
-                self.movie.setScaledSize(QSize(
-                    int(self.movie.scaledSize().width() * self.scale_factor),
-                    int(self.movie.scaledSize().height() * self.scale_factor)
-                ))
+                self.movie = target_gif
                 self.pet_image.setMovie(self.movie)
                 self.movie.start()
+
+            
             if self.status == "free":
                 self.free_times += 1
             if self.free_times > 20 and self.status == "free":
