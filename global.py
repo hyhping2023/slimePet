@@ -9,19 +9,12 @@ from src.voicecontrol import voice_control_thread
 from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze, llm_emotion_query
 from src.voicespeak import speak
 from src.face import facialExpression
+from src.setting import SkinSelectionWindow
 import multiprocessing as mp
 import threading
 import json
 
-app = QApplication(sys.argv)
-# TODO
-emotion = {
-    "surprise": QMovie('asset/cool0.gif'),
-    "angry": QMovie('asset/worried0.gif'),
-    "happy": QMovie('asset/cute0.gif'),
-    "sad": QMovie('asset/worried0.gif'),
-    "neutral": QMovie('asset/slime.gif'),
-}
+
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -71,6 +64,16 @@ class MyPet(QWidget):
         self.slime = DesktopPet(self.pet_image.width(), width, height)
         self.handpose = HandPose(width, height)
         self.hand = None
+        self.running = True  # 新增运行状态标志
+
+        self.emotion = {
+            "surprise": QMovie(setting_window.img[2]),
+            "angry": QMovie(setting_window.img[5]),
+            "happy": QMovie(setting_window.img[3]),
+            "sad": QMovie(setting_window.img[5]),
+            "neutral": QMovie(setting_window.img[0]),
+        }
+
         # 初始化监听模块
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
@@ -103,8 +106,8 @@ class MyPet(QWidget):
 
         self.run(1000//fps)  # 设置帧率
         # 添加新的GIF资源
-        self.high_speed_gif = QMovie('asset/aww0.gif')
-        self.nauseated_gif = QMovie('asset/nauseated0.gif')
+        self.high_speed_gif = QMovie(setting_window.img[1])
+        self.nauseated_gif = QMovie(setting_window.img[4])
         
         # 缩放新GIF
         for gif in [self.high_speed_gif, self.nauseated_gif]:
@@ -112,6 +115,18 @@ class MyPet(QWidget):
                 int(gif.scaledSize().width() * self.scale_factor),
                 int(gif.scaledSize().height() * self.scale_factor)
             ))
+
+    def closeEvent(self, event):
+        # 终止所有子进程
+        self.running = False
+        self.voice_control_process.terminate()
+        if self.talk_process and self.talk_process.is_alive():
+            self.talk_process.terminate()
+        if self.scene_process and self.scene_process.is_alive():
+            self.scene_process.terminate()
+        event.accept()
+        if os.path.exists(self.tmp_dir):
+            os.remove(self.tmp_dir)
 
     def initUI(self):
         # 设置窗口属性
@@ -121,7 +136,7 @@ class MyPet(QWidget):
 
         # 加载图片
         self.pet_image = QLabel(self)
-        self.movie = QMovie('asset/slime.gif')
+        self.movie = QMovie(setting_window.img[0])
         # 缩放GIF
         self.movie.setScaledSize(QSize(
             int(self.movie.scaledSize().width() * self.scale_factor),
@@ -242,17 +257,17 @@ class MyPet(QWidget):
             # 更新表情显示
             if self.slime.is_nauseated:
                 target_gif = self.nauseated_gif
-                print('1')
+                # print('1')
             elif self.slime.is_high_speed:
                 target_gif = self.high_speed_gif
-                print('2')
+                # print('2')
             else:
-                target_gif = emotion[self.slime.emotion]
-                print('3')
+                target_gif = self.emotion[self.slime.emotion]
+                # print('3')
                 if self.slime.change_emotion(self.user_emotion):
-                    print('4')
+                    # print('4')
                     self.movie.stop()
-                    self.movie = emotion[self.slime.emotion]
+                    self.movie = self.emotion[self.slime.emotion]
                     self.movie.setScaledSize(QSize(
                         int(self.movie.scaledSize().width() * self.scale_factor),
                         int(self.movie.scaledSize().height() * self.scale_factor)
@@ -283,8 +298,11 @@ class MyPet(QWidget):
         self.timer.start(frametime)  # 120 fps
 
     def animate(self):
-        self.global_update()
-        self.thread_deleting()
+        if self.running:  # 新增运行状态检测
+            self.global_update()
+            self.thread_deleting()
+        else:
+            self.timer.stop()
                 
     def emotion_query(self):
         self.handpose.record(clear=True)
@@ -358,6 +376,29 @@ class MyPet(QWidget):
 
 
 if __name__ == '__main__':
-    pet = MyPet(fps=120)
-    pet.show()
+    # 创建应用实例
+    app = QApplication(sys.argv)
+    
+    QApplication.setStyle('Fusion')  # 设置全局主题（可选 Fusion, Windows 等）
+
+    # 创建并显示设置窗口
+    setting_window = SkinSelectionWindow()
+    setting_window.show()
+    
+    
+    # 连接信号，当设置完成时显示主窗口
+    def on_setting_confirmed():
+        try:
+            setting_window.hide()
+            global pet
+            pet = MyPet(fps=120)
+            pet.show()
+            
+        except Exception as e:
+            print(f"启动失败：{e}")
+            setting_window.show() 
+    
+    setting_window.selection_confirmed.connect(on_setting_confirmed)
+    
+    # 启动事件循环
     sys.exit(app.exec_())

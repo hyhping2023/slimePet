@@ -70,6 +70,12 @@ def on_press(key):
         stop_recording()
     if key == keyboard.Key.esc:
         exit()
+    try:
+        if key.char.lower() == 'q':  # 新增Q键退出
+            os._exit(0)
+    except AttributeError:
+        pass
+    # ...原有空格键处理...
 
 def write_to_file(data:str):
     with open(tmp_dir, "w") as f:
