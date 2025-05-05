@@ -8,9 +8,9 @@ def guess_game():
     difficulties = [100, 1000, 10000]
     diffculty = random.choice(difficulties)
     number = random.randint(1, diffculty)
-    lower_bound = 5
+    lower_bound = 1
     upper_bound = diffculty
-    attempts = 3
+    attempts = [6, 10, 20][difficulties.index(diffculty)]
     guess = None
     word = "我已经选择了一个{}到{}之间的数字。你有{}次机会来猜测它。"
     with open(tmp_dir, "r") as f:
@@ -36,6 +36,7 @@ def guess_game():
             continue
         if guess <= lower_bound or guess >= upper_bound:
             async_speak("请在{}到{}之间猜测".format(lower_bound, upper_bound))
+            guess = None
             continue
         if guess == number:
             async_speak("恭喜你，猜对了！大吉大利，今晚吃鸡！")
@@ -47,6 +48,8 @@ def guess_game():
         else:
             upper_bound = guess
         attempts -= 1
+        if attempts == 0:
+            break
         async_speak(word.format(lower_bound, upper_bound, attempts))
         guess = None
     async_speak("很遗憾，你没有猜对。正确的数字是{}。".format(number))

@@ -291,7 +291,6 @@ class MyPet(QWidget):
                         int(self.movie.scaledSize().width() * self.scale_factor),
                         int(self.movie.scaledSize().height() * self.scale_factor)
                     ))
-                    print("当前情绪：", self.movie)
                     self.pet_image.setMovie(self.movie)
                     self.movie.start()
 
