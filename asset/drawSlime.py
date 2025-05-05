@@ -34,6 +34,9 @@ class EllipseGenerator:
 
         # 计算整张图片的平均颜色
         avg_color = tuple(np.mean(sample_array, axis=(0, 1)).astype(int))
+        
+        # 新增：预处理平均颜色用于混合
+        avg_r, avg_g, avg_b = [x/255.0 for x in avg_color]
 
         # 转换为HSV并降低亮度
         r, g, b = [x/255.0 for x in avg_color]
@@ -82,19 +85,34 @@ class EllipseGenerator:
             # 计算区域平均色
             region = sample_array[y1:y2+1, x1:x2+1]
             if region.size == 0:
-                avg_color = (128, 128, 128)
+                avg_color_region = (128, 128, 128)
             else:
-                avg_color = tuple(np.mean(region, axis=(0, 1)).astype(int))
+                avg_color_region = tuple(np.mean(region, axis=(0, 1)).astype(int))
 
-            # 亮度调整计算
-            r_p, g_p, b_p = [c/255.0 for c in avg_color]
+            # 颜色混合和对比度调整
+            r_p, g_p, b_p = [c/255.0 for c in avg_color_region]
+            
+            # 与整体平均颜色混合（降低对比度关键步骤）
+            blend_factor = 0.7  # 混合比例，可调整（0.5-0.8）
+            r_p = r_p * blend_factor + avg_r * (1 - blend_factor)
+            g_p = g_p * blend_factor + avg_g * (1 - blend_factor)
+            b_p = b_p * blend_factor + avg_b * (1 - blend_factor)
+
+            # 转换为HSV空间进行调整
             h_p, s_p, v_p = colorsys.rgb_to_hsv(r_p, g_p, b_p)
             
-            # 根据原图亮度动态提升（当原图平均亮度<0.5时生效）
+            # 降低饱和度（减少颜色对比度）
+            # s_p = max(0, s_p * 0.8)  # 饱和度衰减系数，可调整（0.5-0.8）
+            
+            # 压缩亮度范围（减少明暗对比）
+            v_p = 0.3 + v_p * 0.4  # 将亮度限制在0.3-0.7范围
+
+            # 保持原有的亮度提升逻辑
             if average_brightness < 0.5:
-                brightness_boost = (0.5 - average_brightness) * 0.6  # 亮度提升系数
+                brightness_boost = (0.5 - average_brightness) * 0.6
                 v_p = min(v_p + brightness_boost, 1.0)
             
+            # 转换回RGB
             r_new, g_new, b_new = colorsys.hsv_to_rgb(h_p, s_p, v_p)
             adjusted_color = (int(r_new*255), int(g_new*255), int(b_new*255))
             
