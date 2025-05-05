@@ -27,6 +27,11 @@ class EllipseGenerator:
             print(f"无法打开采样图片: {e}")
             return None
         
+        # 新增步骤1：计算原图平均亮度
+        hsv_array = np.array([colorsys.rgb_to_hsv(p[0]/255.0, p[1]/255.0, p[2]/255.0) 
+                             for p in sample_array.reshape(-1,3)])
+        average_brightness = np.mean(hsv_array[:,2])
+
         # 计算整张图片的平均颜色
         avg_color = tuple(np.mean(sample_array, axis=(0, 1)).astype(int))
 
@@ -36,7 +41,7 @@ class EllipseGenerator:
         v = max(0, v * darkness)  # darkness参数控制亮度降低程度
         dark_r, dark_g, dark_b = colorsys.hsv_to_rgb(h, s, v)
         outline_color = (int(dark_r*255), int(dark_g*255), int(dark_b*255), 255)
-
+        
         # 创建目标图像（原始大小）
         target_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(target_img)
@@ -77,12 +82,23 @@ class EllipseGenerator:
             # 计算区域平均色
             region = sample_array[y1:y2+1, x1:x2+1]
             if region.size == 0:
-                avg_color = (128, 128, 128)  # 默认灰色
+                avg_color = (128, 128, 128)
             else:
                 avg_color = tuple(np.mean(region, axis=(0, 1)).astype(int))
+
+            # 亮度调整计算
+            r_p, g_p, b_p = [c/255.0 for c in avg_color]
+            h_p, s_p, v_p = colorsys.rgb_to_hsv(r_p, g_p, b_p)
             
-            # 填充像素
-            draw.point((x, y), (*avg_color, 255))
+            # 根据原图亮度动态提升（当原图平均亮度<0.5时生效）
+            if average_brightness < 0.5:
+                brightness_boost = (0.5 - average_brightness) * 0.6  # 亮度提升系数
+                v_p = min(v_p + brightness_boost, 1.0)
+            
+            r_new, g_new, b_new = colorsys.hsv_to_rgb(h_p, s_p, v_p)
+            adjusted_color = (int(r_new*255), int(g_new*255), int(b_new*255))
+            
+            draw.point((x, y), (*adjusted_color, 255))
         
         # 绘制椭圆轮廓（图片平均颜色）
         for y in range(height):

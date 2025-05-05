@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                            QLabel, QRadioButton, QButtonGroup, QFileDialog, QApplication)
-from PyQt5.QtGui import QPixmap, QMovie
+                            QLabel, QFileDialog, QApplication)
+from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
-from PyQt5.QtCore import pyqtSignal, QByteArray, QSize
+from PyQt5.QtCore import pyqtSignal, QSize
 import os
 from asset.drawSlime import EllipseGenerator
 from asset.gifcom import GIFBackgroundAdder
@@ -38,7 +38,7 @@ class SkinSelectionWindow(QWidget):
     def initUI(self):
         self.setWindowTitle('Setting your slime ^w^')
         self.resize(400, 500)
-        self.setStyleSheet("background-color: #b9b6d3;")  # 设置整个窗口背景色
+        self.setStyleSheet("background-color: #b9b6d3; font-family: Kristen ITC; ")  # 设置整个窗口背景色
         
         # 主布局
         main_layout = QVBoxLayout()
@@ -46,8 +46,9 @@ class SkinSelectionWindow(QWidget):
         
         # 标题
         title_label = QLabel("Choose default skin or select an image to generate your own skin: ", self)
+        title_label.setWordWrap(True)
         title_label.setAlignment(Qt.AlignLeft)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; font-family: Kristen ITC; ")
         main_layout.addWidget(title_label)
         
 
