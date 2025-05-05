@@ -2,7 +2,10 @@ import pyttsx3
 import threading
 import re
 import sys
+import os
+import glob
 import multiprocessing as mp
+
 
 def async_speak(text):
     engine = pyttsx3.init()
