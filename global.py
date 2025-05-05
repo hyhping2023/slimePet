@@ -10,19 +10,10 @@ from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_an
 from src.voicespeak import speak
 from src.face import facialExpression
 from src.game import guess_game
+from src.setting import SkinSelectionWindow
 import multiprocessing as mp
 import threading
 import json
-
-app = QApplication(sys.argv)
-# TODO
-emotion = {
-    "surprise": QMovie('asset/cool0.gif'),
-    "angry": QMovie('asset/worried0.gif'),
-    "happy": QMovie('asset/cute0.gif'),
-    "sad": QMovie('asset/worried0.gif'),
-    "neutral": QMovie('asset/slime.gif'),
-}
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -67,11 +58,14 @@ class MyPet(QWidget):
         self.height = height
         self.scale_factor = scale_factor
         # 初始化UI
+        self.reload_emotion()
         self.initUI()
         # 初始化工具
         self.slime = DesktopPet(self.pet_image.width(), width, height)
         self.handpose = HandPose(width, height)
         self.hand = None
+        self.running = True  # 新增运行状态标志
+
         # 初始化监听模块
         # 将语音控制与按键空格绑定
         self.tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
@@ -83,6 +77,7 @@ class MyPet(QWidget):
         # 清除聊天历史
         with open(CHAT_HISTORY, "w", encoding="utf-8") as f:
             f.write("")
+
         # 语音识别模块进程
         self.voice_control_process = mp.Process(target=voice_control_thread)
         self.voice_control_process.start()
@@ -103,17 +98,29 @@ class MyPet(QWidget):
         # 当前状态
         self.status = "free"
 
-        self.run(1000//fps)  # 设置帧率
-        # 添加新的GIF资源
-        self.high_speed_gif = QMovie('asset/aww0.gif')
-        self.nauseated_gif = QMovie('asset/nauseated0.gif')
-        
-        # 缩放新GIF
-        for gif in [self.high_speed_gif, self.nauseated_gif]:
-            gif.setScaledSize(QSize(
-                int(gif.scaledSize().width() * self.scale_factor),
-                int(gif.scaledSize().height() * self.scale_factor)
-            ))
+    def closeEvent(self, event):
+        # 终止所有子进程
+        self.running = False
+        self.voice_control_process.terminate()
+        if self.talk_process and self.talk_process.is_alive():
+            self.talk_process.terminate()
+        if self.scene_process and self.scene_process.is_alive():
+            self.scene_process.terminate()
+        event.accept()
+        if os.path.exists(self.tmp_dir):
+            os.remove(self.tmp_dir)
+
+    def reload_emotion(self):
+        self.emotion = {
+            "surprise": QMovie(setting_window.img[2]),
+            "angry": QMovie(setting_window.img[5]),
+            "happy": QMovie(setting_window.img[3]),
+            "sad": QMovie(setting_window.img[5]),
+            "neutral": QMovie(setting_window.img[0]),
+            "nauseated": QMovie(setting_window.img[4]),
+            "high_speed": QMovie(setting_window.img[1]),
+        }
+
 
     def initUI(self):
         # 设置窗口属性
@@ -123,7 +130,7 @@ class MyPet(QWidget):
 
         # 加载图片
         self.pet_image = QLabel(self)
-        self.movie = QMovie('asset/slime.gif')
+        self.movie = QMovie(self.emotion["neutral"])
         # 缩放GIF
         self.movie.setScaledSize(QSize(
             int(self.movie.scaledSize().width() * self.scale_factor),
@@ -191,6 +198,13 @@ class MyPet(QWidget):
         self.hand = Hand(hand)
 
     def hand_grab_slime(self):
+        """
+        Determine whether the hand should grab the slime or not based on the distance between them.
+
+        If the hand and slime are closer than 300 pixels and the slime is already grabbed, the position of the slime is updated to the position of the hand.
+        If the hand and slime are closer than 50 pixels and the slime is not grabbed, the slime is set to grabbed and its position is updated to the position of the hand.
+        If the slime is grabbed and the hand and slime are more than 300 pixels apart, the slime is set to not grabbed.
+        """
         dis = ((self.hand.x - self.slime.x) ** 2 + (self.hand.y - self.slime.y) ** 2) ** 0.5
         if dis < 300 and self.slime.is_grabbed:
             # 如果手部与slime的距离小于250，且slime已经被抓住，则更新slime的位置，此次距离判断较大是为了防止经常脱手
@@ -251,22 +265,21 @@ class MyPet(QWidget):
 
             # 更新表情显示
             if self.slime.is_nauseated:
-                target_gif = self.nauseated_gif
-                print('1')
+                target_gif = self.emotion["nauseated"]
             elif self.slime.is_high_speed:
-                target_gif = self.high_speed_gif
-                print('2')
+                target_gif = self.emotion["high_speed"]
             else:
-                target_gif = emotion[self.slime.emotion]
-                print('3')
+                target_gif = self.emotion[self.slime.emotion]
+                # print('3')
                 if self.slime.change_emotion(self.user_emotion):
-                    print('4')
+                    # print('4')
                     self.movie.stop()
-                    self.movie = emotion[self.slime.emotion]
+                    self.movie = self.emotion[self.slime.emotion]
                     self.movie.setScaledSize(QSize(
                         int(self.movie.scaledSize().width() * self.scale_factor),
                         int(self.movie.scaledSize().height() * self.scale_factor)
                     ))
+                    print("当前情绪：", self.movie)
                     self.pet_image.setMovie(self.movie)
                     self.movie.start()
 
@@ -293,14 +306,15 @@ class MyPet(QWidget):
         self.timer.start(frametime)  # 120 fps
 
     def animate(self):
-        self.global_update()
-        self.thread_deleting()
+        if self.running:  # 新增运行状态检测
+            self.global_update()
+            self.thread_deleting()
+        else:
+            self.timer.stop()
                 
     def emotion_query(self):
         self.handpose.record(clear=True)
         emotion = self.facial_expression.predict()['result']
-        # emotion = llm_emotion_query()
-        # print("当前情绪：", emotion)
         self.user_emotion = emotion
         # try:
         #     emotion = requests.post('http://localhost:8001', json={}, timeout=10).json()['result']
@@ -327,16 +341,17 @@ class MyPet(QWidget):
         self.slime.y = self.pet_image.y()
         self.oldPos = event.globalPos()
 
-    def mouseReleaseEvent(self, event):
-        # 鼠标释放时的事件
-        pass
-
     def keyPressEvent(self, event):
         # 检查是否按下了 Q 键
         if event.key() == Qt.Key_Q:
             self.close()  # 关闭窗口
             QApplication.quit() 
             sys.exit(0) # 退出整个应用程序
+        if event.key() == Qt.Key_C:
+            self.status = "quit"
+            pet.hide()  # 隐藏窗口
+            setting_window.show()  # 显示设置窗口
+            setting_window.raise_()  # 将设置窗口置于最上层:
 
     def thread_deleting(self):
         # 删除所有线程
@@ -371,6 +386,34 @@ class MyPet(QWidget):
 
 
 if __name__ == '__main__':
-    pet = MyPet(fps=120)
-    pet.show()
+    # 创建应用实例
+    app = QApplication(sys.argv)
+    
+    QApplication.setStyle('Fusion')  # 设置全局主题（可选 Fusion, Windows 等）
+
+    # 创建并显示设置窗口
+    global setting_window
+    setting_window = SkinSelectionWindow()
+    setting_window.show()
+
+    # 创建并显示桌宠项目主进程
+    global pet
+    fps = 120
+    pet = MyPet(fps=fps)
+    pet.run(1000//fps)  # 设置帧率
+    
+    # 连接信号，当设置完成时显示主窗口
+    def on_setting_confirmed():
+        try:
+            setting_window.hide()
+            pet.reload_emotion()  # 重新初始化窗口
+            pet.show()  # 显示窗口
+            
+        except Exception as e:
+            print(f"启动失败：{e}")
+            setting_window.show() 
+    
+    setting_window.selection_confirmed.connect(on_setting_confirmed)
+    
+    # 启动事件循环
     sys.exit(app.exec_())
