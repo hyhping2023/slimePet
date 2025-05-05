@@ -9,6 +9,7 @@ from src.voicecontrol import voice_control_thread
 from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze, llm_emotion_query
 from src.voicespeak import speak
 from src.face import facialExpression
+from src.game import guess_game
 import multiprocessing as mp
 import threading
 import json
@@ -98,6 +99,7 @@ class MyPet(QWidget):
         self.threads = []
         self.talk_process = None
         self.scene_process = None
+        self.game_process = None
         # 当前状态
         self.status = "free"
 
@@ -207,13 +209,21 @@ class MyPet(QWidget):
             # 读取文件内容
             content = f.read()
         if content != self.prev_content and self.status == "free":
-            self.status = 'busy_1'
             self.prev_content = content
             print("读取到新内容：", content)
+            if "猜" in content or "游戏" in content:
+                self.start_game()
+                return None
+            self.status = 'busy_1'
             self.talk_process = mp.Process(target=talk, args=(content,), daemon=True)
             self.talk_process.start()
             return content
         return None
+    
+    def start_game(self):
+        self.status = "busy_3"
+        self.game_process = mp.Process(target=guess_game, daemon=True)
+        self.game_process.start()
     
     def global_update(self):
         # 获取手部位置关键点
@@ -340,6 +350,9 @@ class MyPet(QWidget):
             self.status = "free"
         if self.talk_process is not None and not self.talk_process.is_alive():
             self.talk_process = None
+            self.status = "free"
+        if self.game_process is not None and not self.game_process.is_alive():
+            self.game_process = None
             self.status = "free"
     
     def __del__(self):
