@@ -122,6 +122,18 @@ class MyPet(QWidget):
         }
 
 
+    def closeEvent(self, event):
+        # 终止所有子进程
+        self.running = False
+        self.voice_control_process.terminate()
+        if self.talk_process and self.talk_process.is_alive():
+            self.talk_process.terminate()
+        if self.scene_process and self.scene_process.is_alive():
+            self.scene_process.terminate()
+        event.accept()
+        if os.path.exists(self.tmp_dir):
+            os.remove(self.tmp_dir)
+
     def initUI(self):
         # 设置窗口属性
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
