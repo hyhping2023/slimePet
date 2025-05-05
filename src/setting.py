@@ -17,12 +17,12 @@ class SkinSelectionWindow(QWidget):
         self.selected_image_path = None  # 初始化属性
         self.initUI()
         self.img=[
-            "asset/slime.gif",
-            "asset/aww0.gif",
-            "asset/cool0.gif",
-            "asset/cute0.gif",
-            "asset/nauseated0.gif",
-            "asset/worried0.gif"
+            "asset/default/DEFAULT_smile.gif",
+            "asset/default/DEFAULT_aww.gif",
+            "asset/default/DEFAULT_cool.gif",
+            "asset/default/DEFAULT_cute.gif",
+            "asset/default/DEFAULT_nauseated.gif",
+            "asset/default/DEFAULT_worried.gif"
         ] 
         
         self.setWindowIcon(QIcon('asset/default.png'))
@@ -93,6 +93,14 @@ class SkinSelectionWindow(QWidget):
     
     def use_default(self):
         """使用默认皮肤"""
+        self.img = [
+            "asset/default/DEFAULT_smile.gif",
+            "asset/default/DEFAULT_aww.gif",
+            "asset/default/DEFAULT_cool.gif",
+            "asset/default/DEFAULT_cute.gif",
+            "asset/default/DEFAULT_nauseated.gif",
+            "asset/default/DEFAULT_worried.gif"
+        ] 
         self.selected_image_path = None
         self.update_preview(None)
 
@@ -112,46 +120,53 @@ class SkinSelectionWindow(QWidget):
                     width=22, 
                     height=22, 
                     sample_image_path=file_path, 
-                    output_path= "asset/skin.png"
+                    output_path= "asset/DIY/skin.png"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/smile1.gif", 
-                    "asset/skin.png", 
-                    "asset/slime1.gif"
+                    "asset/expressions/smile.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/smile.gif"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/aww.gif", 
-                    "asset/skin.png", 
-                    "asset/aww1.gif"
+                    "asset/expressions/aww.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/aww.gif"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/cool.gif", 
-                    "asset/skin.png", 
-                    "asset/cool1.gif"
+                    "asset/expressions/cool.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/cool.gif"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/cute.gif", 
-                    "asset/skin.png", 
-                    "asset/cute1.gif"
+                    "asset/expressions/cute.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/cute.gif"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/nauseated.gif", 
-                    "asset/skin.png", 
-                    "asset/nauseated1.gif"
+                    "asset/expressions/nauseated.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/nauseated.gif"
                 )
 
                 GIFBackgroundAdder.add_background_with_original_speed(
-                    "asset/worried.gif", 
-                    "asset/skin.png", 
-                    "asset/worried1.gif"
+                    "asset/expressions/worried.gif", 
+                    "asset/DIY/skin.png", 
+                    "asset/DIY/worried.gif"
                 )
-                self.update_preview("asset/slime1.gif")
-                pass
+                self.img=[
+                    "asset/DIY/smile.gif",
+                    "asset/DIY/aww.gif",
+                    "asset/DIY/cool.gif",
+                    "asset/DIY/cute.gif",
+                    "asset/DIY/nauseated.gif",
+                    "asset/DIY/worried.gif"
+                ]
+                self.update_preview(self.img[0])  # 显示第一个GIF
             except Exception as e:
                 print(f"处理图片时出错: {e}")
                 return
@@ -163,7 +178,7 @@ class SkinSelectionWindow(QWidget):
             self.preview_label.clear()
         if image_path is None:
             # 加载默认GIF
-            self.movie = QMovie('asset/slime.gif')
+            self.movie = QMovie(self.img[0])
         else:
             # 加载处理后的GIF
             self.movie = QMovie(image_path)
@@ -175,28 +190,7 @@ class SkinSelectionWindow(QWidget):
         self.movie.start()
     
     def confirm_selection(self):
-        """确认选择并启动主程序"""
-        # 如果选择了自定义皮肤，处理图片
-        if self.selected_image_path:
-            # print("a")
-            self.img=[
-                "asset/slime1.gif",
-                "asset/aww1.gif",
-                "asset/cool1.gif",
-                "asset/cute1.gif",
-                "asset/nauseated1.gif",
-                "asset/worried1.gif"
-            ]
-        else:  # 使用默认皮肤
-            # print("b")
-            self.img=[
-                "asset/slime.gif",
-                "asset/aww0.gif",
-                "asset/cool0.gif",
-                "asset/cute0.gif",
-                "asset/nauseated0.gif",
-                "asset/worried0.gif"
-            ]       
+        """确认选择并启动主程序"""   
         self.close()  # 关闭选择窗口
         self.selection_confirmed.emit()  # 发出信号
         

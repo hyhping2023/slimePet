@@ -96,7 +96,7 @@ class MyPet(QWidget):
         self.scene_process = None
         self.game_process = None
         # 当前状态
-        self.status = "free"
+        self.status = "init"
 
     def closeEvent(self, event):
         # 终止所有子进程
@@ -412,6 +412,7 @@ if __name__ == '__main__':
     global pet
     fps = 120
     pet = MyPet(fps=fps)
+    pet.setWindowIcon(QIcon('asset/default.png'))
     pet.run(1000//fps)  # 设置帧率
     
     # 连接信号，当设置完成时显示主窗口
@@ -419,6 +420,7 @@ if __name__ == '__main__':
         try:
             setting_window.hide()
             pet.reload_emotion()  # 重新初始化窗口
+            pet.status = "free"  # 设置状态为自由
             pet.show()  # 显示窗口
             
         except Exception as e:
