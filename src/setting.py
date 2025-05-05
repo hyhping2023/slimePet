@@ -8,6 +8,9 @@ from asset.drawSlime import EllipseGenerator
 from asset.gifcom import GIFBackgroundAdder
 from PyQt5.QtGui import QIcon
 
+if not os.path.exists("asset/DIY"):
+    os.makedirs("asset/DIY")
+
 class SkinSelectionWindow(QWidget):
     selection_confirmed = pyqtSignal()
     
@@ -24,7 +27,7 @@ class SkinSelectionWindow(QWidget):
             "asset/default/DEFAULT_nauseated.gif",
             "asset/default/DEFAULT_worried.gif"
         ] 
-        
+
         self.setWindowIcon(QIcon('asset/default.png'))
     
     def showEvent(self, event):
