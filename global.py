@@ -338,6 +338,13 @@ class MyPet(QWidget):
         # 鼠标按下时的事件
         self.oldPos = event.globalPos()
 
+    def mouseDoubleClickEvent(self, event):
+        # 检查是否在宠物图像范围内
+        if (self.pet_image.x() <= event.x() <= self.pet_image.x() + self.pet_image.width() and
+            self.pet_image.y() <= event.y() <= self.pet_image.y() + self.pet_image.height()):
+            setting_window.show()
+    
+
     def mouseMoveEvent(self, event):
         # 判断鼠标在不在pet的范围内
         if event.x() < self.pet_image.x() or event.x() > self.pet_image.x() + self.pet_image.width():
