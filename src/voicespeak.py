@@ -4,54 +4,158 @@ import re
 import sys
 import os
 import glob
+import logging
 import multiprocessing as mp
+from gradio_client import Client, handle_file
+from pydub import AudioSegment
+from pydub.playback import play 
+from functools import partial
+from .utils import language_detect, contains_chinese
+from .config import AVAIABLE_VOICES
 
+client = Client("http://10.4.174.156:9872/")
+def check_gpt_server():
+    try:
+        client.predict(api_name="/change_choices")
+        return True
+    except Exception as e:
+        logging.error(f"Error connecting to GPT server: {e}")
+        return False
+gpt_speak = check_gpt_server()
+    
+if not gpt_speak:
+    def sync_speak(text, people=None):
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 250)
+        engine.setProperty('volume', 1)
+        voices = engine.getProperty('voices')
+        if sys.platform == "win32":
+            engine.setProperty('voice', voices[0].id)
+        elif sys.platform == "darwin":
+            if contains_chinese(text):
+                for voice in voices:
+                    if "zh-CN" in voice.id:
+                        engine.setProperty('voice', voice.id)
+                        break
+        elif sys.platform == "linux":
+            engine.setProperty('voice', voices[0].id)
+        engine.say(text)
+        engine.runAndWait()
+        engine.stop()
 
-def async_speak(text):
-    engine = pyttsx3.init()
-    engine.setProperty('rate', 250)
-    engine.setProperty('volume', 1)
-    voices = engine.getProperty('voices')
-    if sys.platform == "win32":
-        engine.setProperty('voice', voices[0].id)
-    elif sys.platform == "darwin":
-        if contains_chinese(text):
-            for voice in voices:
-                if "zh-CN" in voice.id:
-                    engine.setProperty('voice', voice.id)
-                    break
-    elif sys.platform == "linux":
-        engine.setProperty('voice', voices[0].id)
-    engine.say(text)
-    engine.runAndWait()
-    engine.stop()
+    def check_language_support():
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        for voice in voices:
+            print(voice.id)
 
-def check_language_support():
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
-    for voice in voices:
-        print(voice.id)
+    def speak(text, people=None):
+        if sys.platform == "win32":
+            thread = threading.Thread(target=sync_speak, args=(text, people, ))
+        elif sys.platform == "darwin":
+            thread = mp.Process(target=sync_speak, args=(text, people, ))
+        elif sys.platform == "linux":
+            thread = mp.Process(target=sync_speak, args=(text, people, ))
+        thread.start()
+        return thread
+    
+else:
+    predict = partial(client.predict, 
+        # ref_wav_path=file('/Users/hyhping/Music/people/rencai.wav'),
+		prompt_text="",
+		# prompt_language="日文",
+		# text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
+		# text_language="中文",
+		how_to_cut="凑四句一切",
+		top_k=15,
+		top_p=1,
+		temperature=1,
+		ref_free=False,
+		speed=1,
+		if_freeze=False,
+		inp_refs=None,
+		sample_steps="8",
+		if_sr=False,
+		pause_second=0.3,
+		api_name="/get_tts_wav")
+    
+    def sync_speak(text, people='rencai'):
+        result = predict(
+            text=text,
+            ref_wav_path=handle_file(AVAIABLE_VOICES[people]["ref-wav"]),
+            prompt_language=AVAIABLE_VOICES[people]["language"],
+            text_language=language_detect(text),
+        )
+        song = AudioSegment.from_wav(result)
+        play(song)
+        os.remove(result)
 
-def speak(text):
-    if sys.platform == "win32":
-        thread = threading.Thread(target=async_speak, args=(text,))
-    elif sys.platform == "darwin":
-        thread = mp.Process(target=async_speak, args=(text,))
-    elif sys.platform == "linux":
-        thread = mp.Process(target=async_speak, args=(text,))
-    thread.start()
-    return thread
+    def speak(text, people='rencai'):
+        if sys.platform == "win32":
+            thread = threading.Thread(target=sync_speak, args=(text, people,))
+        elif sys.platform == "darwin":
+            thread = mp.Process(target=sync_speak, args=(text, people,))
+        elif sys.platform == "linux":
+            thread = mp.Process(target=sync_speak, args=(text,people,))
+        thread.start()
+        return thread
 
-def contains_chinese(text):
-    # 使用正则表达式匹配中文字符
-    pattern = re.compile(r'[\u4e00-\u9fff]')
-    return bool(pattern.search(text))
+    change_sovit_weight = partial(client.predict, api_name="/change_sovits_weights")
+    change_gpt_weight = partial(client.predict, api_name="/change_gpt_weights")
+
+    def change_weights(people):
+        if people not in AVAIABLE_VOICES:
+            logging.warning(f"Invalid voice name: {people}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
+        change_gpt_weight(gpt_path=AVAIABLE_VOICES[people]["gpt-weight"])
+        change_sovit_weight(sovits_path=AVAIABLE_VOICES[people]["sovit-weight"])
+
+    def gpt_sync_speak(text, people):
+        if people not in AVAIABLE_VOICES:
+            logging.warning(f"Invalid voice name: {people}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
+        result = predict(
+            text=text,
+            ref_wav_path=handle_file(AVAIABLE_VOICES[people]["ref-wav"]),
+            prompt_language=AVAIABLE_VOICES[people]["language"],
+            text_language=language_detect(text),
+        )
+        return result
+
+    def gpt_wav(file_dir):
+        song = AudioSegment.from_wav(file_dir)
+        play(song)
+        os.remove(file_dir)
 
 if __name__ == "__main__":
-    check_language_support()
-    import time
-    # speak("hello everyone")
-    speak("我是稻妻城的神里绫华")
-    for i in range(10):
-        print(f'主线程计时{i}')
-        time.sleep(1)
+    # playsound("/Users/hyhping/Music/people/rencai.wav")
+    # print(result)
+    # playsound(result)
+    
+    change_weights("rencai")
+    result1 = predict(
+        text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
+        ref_wav_path=handle_file(AVAIABLE_VOICES["rencai"]["ref-wav"]),
+        prompt_language=AVAIABLE_VOICES["rencai"]["language"],
+        text_language="中文",
+    )
+    change_weights("486")
+    result2 = predict(
+        text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
+        ref_wav_path=handle_file(AVAIABLE_VOICES["486"]["ref-wav"]),
+        prompt_language=AVAIABLE_VOICES["486"]["language"],
+        text_language="中文",
+    )
+    song = AudioSegment.from_wav(result1)
+    play(song)
+    song = AudioSegment.from_wav(result2)
+    play(song)
+    # 删除临时文件
+    os.remove(result1)
+    os.remove(result2)
+
+    # check_language_support()
+    # import time
+    # # speak("hello everyone")
+    # speak("我是稻妻城的神里绫华")
+    # for i in range(10):
+    #     print(f'主线程计时{i}')
+    #     time.sleep(1)

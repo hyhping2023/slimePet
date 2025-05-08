@@ -1,5 +1,5 @@
 import random
-from .voicespeak import speak, async_speak
+from .voicespeak import speak, sync_speak
 import os
 import cn2an
 
@@ -18,7 +18,7 @@ def guess_game():
     with open(tmp_dir, "w") as f:
         f.write("")
     prev_content = ""
-    async_speak(word.format(lower_bound, upper_bound, attempts))
+    sync_speak(word.format(lower_bound, upper_bound, attempts))
     while attempts > 0:
         with open(tmp_dir, "r") as f:
             content = f.read()
@@ -35,11 +35,11 @@ def guess_game():
         if guess == None:
             continue
         if guess <= lower_bound or guess >= upper_bound:
-            async_speak("请在{}到{}之间猜测".format(lower_bound, upper_bound))
+            sync_speak("请在{}到{}之间猜测".format(lower_bound, upper_bound))
             guess = None
             continue
         if guess == number:
-            async_speak("恭喜你，猜对了！大吉大利，今晚吃鸡！")
+            sync_speak("恭喜你，猜对了！大吉大利，今晚吃鸡！")
             with open(tmp_dir, "w") as f:
                 f.write(old_content)
             return
@@ -50,9 +50,9 @@ def guess_game():
         attempts -= 1
         if attempts == 0:
             break
-        async_speak(word.format(lower_bound, upper_bound, attempts))
+        sync_speak(word.format(lower_bound, upper_bound, attempts))
         guess = None
-    async_speak("很遗憾，你没有猜对。正确的数字是{}。".format(number))
+    sync_speak("很遗憾，你没有猜对。正确的数字是{}。".format(number))
     with open(tmp_dir, "w") as f:
         f.write(old_content)
             
