@@ -11,3 +11,8 @@ AVAIABLE_VOICES = {"rencai": {
                         "ref-wav": 'asset/voice/ref/486.wav'
                           },
                    }
+
+NAME2REALNAME = {
+    "rencai": "井芹仁菜",
+    "486": "安和昴",
+}
