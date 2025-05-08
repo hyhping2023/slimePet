@@ -7,8 +7,8 @@ from .utils import prompt_clear
 
 CHAT_HISTORY = "tmp/chat_history.jsonl"
 CHAT_HISTORY_MAX_LIMIT = 3 * 2 # 5 rounds of conversation
-client = Client(
-    "http://localhost:11434/",
+ollama_client = Client(
+    "http://10.4.174.156:11434/",
 )
 speak_queue = {}
 print(gpt_speak)
@@ -32,7 +32,7 @@ def generate(prompt, model="gemma3:4b", new_chat=False, people="rencai"):
     print("chat_history:", chat_history)
     response = ""
     temp_response = ""
-    for part_response in client.chat(
+    for part_response in ollama_client.chat(
         model=model,
         messages=chat_history, 
         stream=True,
@@ -131,7 +131,7 @@ def scene_analyze(emotion, model="gemma3:4b"):
     else:
         prompt = EMOTION_PROMPT[1].format(emotion)
     prompt = TASK_DESCRIPTION.format(prompt)
-    response = client.chat(
+    response = ollama_client.chat(
         model=model,
         messages=[
             {"role": "user", "content": prompt, "images": [image_base64]},
@@ -161,7 +161,7 @@ emotion_types = ["neutral", "surprise", "angry", "happy", "sad", "neutral",]
 
 def llm_emotion_query():
     image_base64 = tmp_picture_encode()
-    response = client.chat(
+    response = ollama_client.chat(
         model="gemma3:4b",
         messages=[
             {"role": "user", "content": QUERY_PROMPT, "images": [image_base64]},
