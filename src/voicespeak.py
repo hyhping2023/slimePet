@@ -5,15 +5,23 @@ import sys
 import os
 import glob
 import logging
+import tempfile
+from shutil import copyfile
 import multiprocessing as mp
 from gradio_client import Client, handle_file
 from pydub import AudioSegment
 from pydub.playback import play 
 from functools import partial
-from .utils import language_detect, contains_chinese
-from .config import AVAIABLE_VOICES
+from utils import language_detect, contains_chinese
+from config import AVAIABLE_VOICES
 
-client = Client("http://10.4.174.156:9872/")
+now_dir = os.getcwd()
+tmp_dir = os.path.join(now_dir, "tmp", 'voice')
+os.environ['TMPDIR'] = tmp_dir
+if not os.path.exists(tmp_dir):
+    os.makedirs(tmp_dir)
+
+client = Client("http://10.4.174.156:9872/", download_files=tmp_dir)
 def check_gpt_server():
     try:
         client.predict(api_name="/change_choices")
@@ -121,6 +129,9 @@ else:
         return result
 
     def gpt_wav(file_dir):
+        # 播放音频
+        # 读取音频文件
+        print("file_dir:", file_dir)
         song = AudioSegment.from_wav(file_dir)
         play(song)
         os.remove(file_dir)

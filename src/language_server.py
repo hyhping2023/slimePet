@@ -1,13 +1,14 @@
 import threading
 import json
+import os
 import base64
-from ollama import Client
-from .voicespeak import sync_speak, speak, gpt_sync_speak, gpt_wav, gpt_speak
-from .utils import prompt_clear
+import ollama
+from voicespeak import sync_speak, speak, gpt_sync_speak, gpt_wav, gpt_speak
+from utils import prompt_clear
 
 CHAT_HISTORY = "tmp/chat_history.jsonl"
 CHAT_HISTORY_MAX_LIMIT = 3 * 2 # 5 rounds of conversation
-ollama_client = Client(
+ollama_client = ollama.Client(
     "http://10.4.174.156:11434/",
 )
 speak_queue = {}
@@ -187,8 +188,8 @@ def tmp_picture_encode():
     return image_base64
 
 if __name__ == "__main__":
-    # prompt = "请用50个字分析中国大陆能否攻下台湾"
-    # response = generate(prompt)
+    prompt = "请用50个字分析中国大陆能否攻下台湾"
+    response = generate(prompt)
 
     emotion = "happy"
     response = scene_analyze(emotion)
