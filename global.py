@@ -7,11 +7,12 @@ from src.slime import DesktopPet
 from src.handpose import HandPose, Hand
 from src.voicecontrol import voice_control_thread
 from src.language_server import generate, EMOTION_PROMPT, CHAT_HISTORY, scene_analyze, llm_emotion_query
-from src.voicespeak import speak
+from src.voicespeak import gpt_speak, change_voice
 from src.face import facialExpression
 from src.game import guess_game
 from src.setting import SkinSelectionWindow
 from src.utils import empty_remove
+from src.config import AVAIABLE_VOICES, NAME2REALNAME
 import multiprocessing as mp
 import threading
 import json
@@ -26,11 +27,11 @@ def get_screen_resolution():
     height = screen_size.height()
     return width, height
 
-def emotion_assist(user_emotion):
-    result = scene_analyze(user_emotion)
+def emotion_assist(user_emotion, people):
+    result = scene_analyze(user_emotion, people=people)
 
-def talk(prev_content, new_chat=False):
-    response = generate(prev_content, new_chat=new_chat)
+def talk(prev_content, people="rencai", new_chat=False):
+    response = generate(prev_content, people=people, new_chat=new_chat)
 
 class QPicture(QLabel):
     def __init__(self, parent=None):
@@ -98,6 +99,9 @@ class MyPet(QWidget):
         self.game_process = None
         # 当前状态
         self.status = "init"
+        # 说话人
+        self.speaker = "486"
+        change_voice(self.speaker)
 
     def closeEvent(self, event):
         # 终止所有子进程
@@ -206,9 +210,13 @@ class MyPet(QWidget):
         hands = self.handpose.get_hand_landmarks()
         if len(hands) == 0:
             self.hand = None
+            self.hand_grasp_image.setVisible(False)
+            self.hand_loose_image.setVisible(False)
             return
         hand = hands[0]
         self.hand = Hand(hand)
+        self.hand_grasp_image.setVisible(True)
+        self.hand_loose_image.setVisible(True)
 
     def hand_grab_slime(self):
         """
@@ -240,11 +248,11 @@ class MyPet(QWidget):
             if len(empty_remove(content)) == 0:
                 return None
             print("读取到新内容：", content)
-            if "猜" in content or "游戏" in content:
+            if "猜" in content:
                 self.start_game()
                 return None
             self.status = 'busy_1'
-            self.talk_process = mp.Process(target=talk, args=(content,), daemon=True)
+            self.talk_process = mp.Process(target=talk, args=(content, self.speaker, ), daemon=True)
             self.talk_process.start()
             return content
         return None
@@ -256,7 +264,8 @@ class MyPet(QWidget):
     
     def global_update(self):
         # 获取手部位置关键点
-        self.hand_update()
+        if self.hand is not None:
+            self.hand_update()
         if self.hand is not None:
             if self.hand.is_grab():
                 self.hand_grab_slime()
@@ -272,6 +281,8 @@ class MyPet(QWidget):
             self.hand_grasp_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_grasp_image.width(), self.hand_grasp_image.height())
             self.hand_loose_image.setGeometry(int(self.hand.x), int(self.hand.y), self.hand_loose_image.width(), self.hand_loose_image.height())
         if time.time() - self.prev_time > 1:
+            if self.hand is None:
+                self.hand_update()
             print(self.status)
             thread = threading.Thread(target=self.emotion_query, daemon=True)
             thread.start()
@@ -296,18 +307,17 @@ class MyPet(QWidget):
                     ))
                     self.pet_image.setMovie(self.movie)
                     self.movie.start()
-
+            if self.status == "free":
+                self.free_times += 1
             if self.movie != target_gif:
                 self.movie.stop()
                 self.movie = target_gif
                 self.pet_image.setMovie(self.movie)
                 self.movie.start()
-            if self.status == "free":
-                self.free_times += 1
             if self.free_times > 20 and self.status == "free":
                 self.free_times = 0
                 self.status = "busy_2"
-                process = mp.Process(target=emotion_assist, daemon=True, args=(self.user_emotion,))
+                process = mp.Process(target=emotion_assist, daemon=True, args=(self.user_emotion, self.speaker, ))
                 process.start()
                 self.scene_process = process
 

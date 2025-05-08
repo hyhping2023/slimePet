@@ -17,7 +17,7 @@ def gpt_async_speak(text, people, queue, index):
     result = gpt_sync_speak(text, people)
     queue[index] = result
 
-def generate(prompt, model="gemma3:4b", new_chat=False, people="rencai"):
+def generate(prompt, people="rencai", model="gemma3:4b", new_chat=False,):
     threads_queue = []
     inx = 0
     spk_inx = 0
@@ -126,7 +126,7 @@ EMOTION_PROMPT = {
     1: "My current feelings might be {}",
 }
 
-def scene_analyze(emotion, model="gemma3:4b"):
+def scene_analyze(emotion, people="rencai", model="gemma3:4b"):
     image_base64 = tmp_picture_encode()
     if emotion == 'neutral':
         prompt = EMOTION_PROMPT[0]

@@ -5,7 +5,6 @@ import sys
 import os
 import glob
 import logging
-import winsound
 import tempfile
 from shutil import copyfile
 import multiprocessing as mp
@@ -23,6 +22,14 @@ if not os.path.exists(tmp_dir):
     os.makedirs(tmp_dir)
 
 client = Client("http://10.4.174.156:9872/", download_files=tmp_dir)
+
+def change_voice(name):
+    if name not in AVAIABLE_VOICES:
+        logging.warning(f"Invalid voice name: {name}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
+        return
+    change_weights(name)
+    logging.info(f"Voice changed to: {name}")
+
 def check_gpt_server():
     try:
         client.predict(api_name="/change_choices")
@@ -33,7 +40,7 @@ def check_gpt_server():
 gpt_speak = check_gpt_server()
     
 if not gpt_speak:
-    def sync_speak(text, people=None):
+    def sync_speak(text, SPEAKER=None):
         engine = pyttsx3.init()
         engine.setProperty('rate', 250)
         engine.setProperty('volume', 1)
@@ -43,7 +50,7 @@ if not gpt_speak:
         elif sys.platform == "darwin":
             if contains_chinese(text):
                 for voice in voices:
-                    if "zh-CN" in voice.id:
+                    if "zh-CN" in voice.id:  
                         engine.setProperty('voice', voice.id)
                         break
         elif sys.platform == "linux":
@@ -58,13 +65,13 @@ if not gpt_speak:
         for voice in voices:
             print(voice.id)
 
-    def speak(text, people=None):
+    def speak(text, SPEAKER=None):
         if sys.platform == "win32":
-            thread = threading.Thread(target=sync_speak, args=(text, people, ))
+            thread = threading.Thread(target=sync_speak, args=(text, ))
         elif sys.platform == "darwin":
-            thread = mp.Process(target=sync_speak, args=(text, people, ))
+            thread = mp.Process(target=sync_speak, args=(text, ))
         elif sys.platform == "linux":
-            thread = mp.Process(target=sync_speak, args=(text, people, ))
+            thread = mp.Process(target=sync_speak, args=(text, ))
         thread.start()
         return thread
     
@@ -88,41 +95,41 @@ else:
 		pause_second=0.3,
 		api_name="/get_tts_wav")
     
-    def sync_speak(text, people='rencai'):
+    def sync_speak(text, SPEAKER='rencai'):
         result = predict(
             text=text,
-            ref_wav_path=handle_file(AVAIABLE_VOICES[people]["ref-wav"]),
-            prompt_language=AVAIABLE_VOICES[people]["language"],
+            ref_wav_path=handle_file(AVAIABLE_VOICES[SPEAKER]["ref-wav"]),
+            prompt_language=AVAIABLE_VOICES[SPEAKER]["language"],
             text_language=language_detect(text),
         )
         gpt_wav(result)
 
-    def speak(text, people='rencai'):
+    def speak(text, SPEAKER=None):
         if sys.platform == "win32":
-            thread = threading.Thread(target=sync_speak, args=(text, people,))
+            thread = threading.Thread(target=sync_speak, args=(text, SPEAKER,))
         elif sys.platform == "darwin":
-            thread = mp.Process(target=sync_speak, args=(text, people,))
+            thread = mp.Process(target=sync_speak, args=(text,SPEAKER,))
         elif sys.platform == "linux":
-            thread = mp.Process(target=sync_speak, args=(text,people,))
+            thread = mp.Process(target=sync_speak, args=(text,SPEAKER,))
         thread.start()
         return thread
 
     change_sovit_weight = partial(client.predict, api_name="/change_sovits_weights")
     change_gpt_weight = partial(client.predict, api_name="/change_gpt_weights")
 
-    def change_weights(people):
-        if people not in AVAIABLE_VOICES:
-            logging.warning(f"Invalid voice name: {people}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
-        change_gpt_weight(gpt_path=AVAIABLE_VOICES[people]["gpt-weight"])
-        change_sovit_weight(sovits_path=AVAIABLE_VOICES[people]["sovit-weight"])
+    def change_weights(SPEAKER):
+        if SPEAKER not in AVAIABLE_VOICES:
+            logging.warning(f"Invalid voice name: {SPEAKER}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
+        change_gpt_weight(gpt_path=AVAIABLE_VOICES[SPEAKER]["gpt-weight"])
+        change_sovit_weight(sovits_path=AVAIABLE_VOICES[SPEAKER]["sovit-weight"])
 
-    def gpt_sync_speak(text, people):
-        if people not in AVAIABLE_VOICES:
-            logging.warning(f"Invalid voice name: {people}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
+    def gpt_sync_speak(text, SPEAKER='rencai'):
+        if SPEAKER not in AVAIABLE_VOICES:
+            logging.warning(f"Invalid voice name: {SPEAKER}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
         result = predict(
             text=text,
-            ref_wav_path=handle_file(AVAIABLE_VOICES[people]["ref-wav"]),
-            prompt_language=AVAIABLE_VOICES[people]["language"],
+            ref_wav_path=handle_file(AVAIABLE_VOICES[SPEAKER]["ref-wav"]),
+            prompt_language=AVAIABLE_VOICES[SPEAKER]["language"],
             text_language=language_detect(text),
         )
         return result
@@ -131,6 +138,7 @@ else:
         # 播放音频
         # 读取音频文件
         if sys.platform == "win32":
+            import winsound
             winsound.PlaySound(file_dir, winsound.SND_FILENAME)
         else:
             song = AudioSegment.from_wav(file_dir)
