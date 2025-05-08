@@ -3,8 +3,8 @@ import json
 import os
 import base64
 import ollama
-from voicespeak import sync_speak, speak, gpt_sync_speak, gpt_wav, gpt_speak
-from utils import prompt_clear
+from .voicespeak import sync_speak, speak, gpt_sync_speak, gpt_wav, gpt_speak
+from .utils import prompt_clear
 
 CHAT_HISTORY = "tmp/chat_history.jsonl"
 CHAT_HISTORY_MAX_LIMIT = 3 * 2 # 5 rounds of conversation
@@ -92,8 +92,9 @@ def generate(prompt, model="gemma3:4b", new_chat=False, people="rencai"):
                         threads_queue[0][0].start()
                         threads_queue[0] = (threads_queue[0][0], "started")
     else:
-        threading.Thread(target=gpt_async_speak, args=(prompt_clear(temp_response), people, speak_queue, inx)).start()
-        inx += 1
+        if len(prompt_clear(temp_response)) > 0:
+            threading.Thread(target=gpt_async_speak, args=(prompt_clear(temp_response), people, speak_queue, inx)).start()
+            inx += 1
         while spk_inx < inx:
             if spk_inx in speak_queue:
                 spk_thread = threading.Thread(target=gpt_wav, args=(speak_queue[spk_inx],))

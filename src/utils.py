@@ -35,5 +35,12 @@ def prompt_clear(prompt):
     prompt = prompt.replace("【", "").replace("】", "")
     prompt = prompt.replace("(", "").replace(")", "")
     prompt = prompt.replace("：", "").replace(":", "")
-    prompt = prompt.strip()
-    return prompt
+    return empty_remove(prompt)
+
+def empty_remove(text):
+    # 清除多余的空格和换行符
+    text = text.replace("\n", "")
+    text = text.replace("\r", "")
+    text = text.replace("\t", "")
+    text = text.replace(" ", "")
+    return text.strip()

@@ -11,6 +11,7 @@ from src.voicespeak import speak
 from src.face import facialExpression
 from src.game import guess_game
 from src.setting import SkinSelectionWindow
+from src.utils import empty_remove
 import multiprocessing as mp
 import threading
 import json
@@ -236,6 +237,8 @@ class MyPet(QWidget):
             content = f.read()
         if content != self.prev_content and self.status == "free":
             self.prev_content = content
+            if len(empty_remove(content)) == 0:
+                return None
             print("读取到新内容：", content)
             if "猜" in content or "游戏" in content:
                 self.start_game()
@@ -299,8 +302,6 @@ class MyPet(QWidget):
                 self.movie = target_gif
                 self.pet_image.setMovie(self.movie)
                 self.movie.start()
-
-            
             if self.status == "free":
                 self.free_times += 1
             if self.free_times > 20 and self.status == "free":
@@ -400,8 +401,6 @@ class MyPet(QWidget):
             self.scene_process.kill()
             self.scene_process.join()
         self.thread_deleting()
-
-
 
 if __name__ == '__main__':
     # 创建应用实例

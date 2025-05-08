@@ -5,6 +5,7 @@ import sys
 import os
 import glob
 import logging
+import winsound
 import tempfile
 from shutil import copyfile
 import multiprocessing as mp
@@ -12,8 +13,8 @@ from gradio_client import Client, handle_file
 from pydub import AudioSegment
 from pydub.playback import play 
 from functools import partial
-from utils import language_detect, contains_chinese
-from config import AVAIABLE_VOICES
+from .utils import language_detect, contains_chinese, empty_remove
+from .config import AVAIABLE_VOICES
 
 now_dir = os.getcwd()
 tmp_dir = os.path.join(now_dir, "tmp", 'voice')
@@ -82,7 +83,7 @@ else:
 		speed=1,
 		if_freeze=False,
 		inp_refs=None,
-		sample_steps="8",
+		sample_steps="32",
 		if_sr=False,
 		pause_second=0.3,
 		api_name="/get_tts_wav")
@@ -94,9 +95,7 @@ else:
             prompt_language=AVAIABLE_VOICES[people]["language"],
             text_language=language_detect(text),
         )
-        song = AudioSegment.from_wav(result)
-        play(song)
-        os.remove(result)
+        gpt_wav(result)
 
     def speak(text, people='rencai'):
         if sys.platform == "win32":
@@ -131,9 +130,11 @@ else:
     def gpt_wav(file_dir):
         # 播放音频
         # 读取音频文件
-        print("file_dir:", file_dir)
-        song = AudioSegment.from_wav(file_dir)
-        play(song)
+        if sys.platform == "win32":
+            winsound.PlaySound(file_dir, winsound.SND_FILENAME)
+        else:
+            song = AudioSegment.from_wav(file_dir)
+            play(song)
         os.remove(file_dir)
 
 if __name__ == "__main__":
@@ -156,9 +157,9 @@ if __name__ == "__main__":
         text_language="中文",
     )
     song = AudioSegment.from_wav(result1)
-    play(song)
+    gpt_wav(result1)
     song = AudioSegment.from_wav(result2)
-    play(song)
+    gpt_wav(result2)
     # 删除临时文件
     os.remove(result1)
     os.remove(result2)
