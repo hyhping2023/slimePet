@@ -89,6 +89,7 @@ class MyPet(QWidget):
         self.prev_velocity = (time.time(), (0, 0))
         # 记录当前时间
         self.prev_time = time.time()
+        self.no_hand_time = time.time()
         # 史莱姆状态
         self.free_times = 0
         self.user_emotion = 'neutral'
@@ -100,7 +101,7 @@ class MyPet(QWidget):
         # 当前状态
         self.status = "init"
         # 说话人
-        self.speaker = "486"
+        self.speaker = "刻晴"
         change_voice(self.speaker)
 
     def closeEvent(self, event):
@@ -210,8 +211,9 @@ class MyPet(QWidget):
         hands = self.handpose.get_hand_landmarks()
         if len(hands) == 0:
             self.hand = None
-            self.hand_grasp_image.setVisible(False)
-            self.hand_loose_image.setVisible(False)
+            if time.time() - self.no_hand_time > 2:
+                self.hand_grasp_image.setVisible(False)
+                self.hand_loose_image.setVisible(False)
             return
         hand = hands[0]
         self.hand = Hand(hand)
