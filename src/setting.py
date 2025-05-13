@@ -1,12 +1,18 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                            QLabel, QFileDialog, QApplication)
+                            QLabel, QFileDialog, QApplication, QComboBox)
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal, QSize
 import os
-from asset.drawSlime import EllipseGenerator
-from asset.gifcom import GIFBackgroundAdder
+from .drawSlime import EllipseGenerator
+from .gifcom import GIFBackgroundAdder
 from PyQt5.QtGui import QIcon
+import sys
+from .voicespeak import gpt_wav
+# from pathlib import Path
+
+# # 将项目根目录（slimePet/）添加到Python路径
+# sys.path.append(str(Path(__file__).parent.parent))
 
 if not os.path.exists("asset/DIY"):
     os.makedirs("asset/DIY")
@@ -18,6 +24,7 @@ class SkinSelectionWindow(QWidget):
         super().__init__()
         self.movie = None  # 新增movie成员变量
         self.selected_image_path = None  # 初始化属性
+        self.selected_audio = None  # 存储选中的音频文件
         self.initUI()
         self.img=[
             "asset/default/DEFAULT_smile.gif",
@@ -34,6 +41,7 @@ class SkinSelectionWindow(QWidget):
         """窗口显示时加载默认预览"""
         super().showEvent(event)
         self.update_preview(None)  # 现在加载预览
+        self.load_audio_files()  # 加载音频文件
 
     def initUI(self):
         self.setWindowTitle('Setting your slime ^w^')
@@ -72,6 +80,32 @@ class SkinSelectionWindow(QWidget):
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("border: 1px solid #ccc;")
         main_layout.addWidget(self.preview_label)
+
+         # 音频选择部分
+        audio_layout = QVBoxLayout()
+        
+        # 音频选择标签
+        audio_label = QLabel("Select voice model:", self)
+        audio_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        audio_layout.addWidget(audio_label)
+        
+        # 音频下拉菜单
+        self.audio_combo = QComboBox(self)
+        self.audio_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                border: 1px solid #ccc;
+                padding: 5px;
+                border-radius: 5px;
+            }
+            QComboBox::drop-down {
+                border: 0px;
+            }
+        """)
+        self.audio_combo.currentIndexChanged.connect(self.on_audio_selected)
+        audio_layout.addWidget(self.audio_combo)
+        
+        main_layout.addLayout(audio_layout)
         
         # 确认和退出按钮
         buttons_layout = QHBoxLayout()
@@ -88,13 +122,7 @@ class SkinSelectionWindow(QWidget):
         
         self.setLayout(main_layout)
     
-    # def on_skin_selected(self, id):
-    #     """处理皮肤选择变化"""
-    #     self.upload_btn.setEnabled(id == 1)
-    #     if id == 0:  # 默认皮肤
-    #         self.movie = None  # 新增movie成员变量
-    #         self.update_preview(None)
-    
+
     def use_default(self):
         """使用默认皮肤"""
         self.img = [
@@ -193,6 +221,43 @@ class SkinSelectionWindow(QWidget):
         self.preview_label.setMovie(self.movie)
         self.movie.start()
     
+    def load_audio_files(self):
+        audio_dir = "asset/voice/model"
+        """加载voice/model文件夹中的wav音频文件"""
+        # print("Loading audio files...")
+        if not os.path.exists(audio_dir):
+            # os.makedirs(audio_dir)
+            print(f"Audio directory {audio_dir} not found")
+            return
+        
+        # 获取所有.wav文件
+        audio_files = [f for f in os.listdir(audio_dir) if f.endswith('.wav')]
+        
+        # 清空并重新填充下拉菜单
+        self.audio_combo.clear()
+        
+        if not audio_files:
+            self.audio_combo.addItem("No audio files found")
+            self.audio_combo.setEnabled(False)
+            return
+        
+        self.audio_combo.addItem("Select a voice model...")
+        self.audio_combo.addItems(audio_files)
+        self.audio_combo.setCurrentIndex(0)
+    
+    def on_audio_selected(self, index):
+        # print(f"select {index}")
+        """处理音频选择变化"""
+        if index > 0:  # 跳过第一个提示项
+            self.selected_audio = self.audio_combo.currentText()
+            print(f"Selected audio: {self.selected_audio}")
+            if sys.platform == "win32":
+                import winsound
+                winsound.PlaySound("asset/voice/model/"+self.selected_audio, winsound.SND_FILENAME)
+            else:
+                song = AudioSegment.from_wav("asset/voice/model/"+self.selected_audio)
+                play(song)
+
     def confirm_selection(self):
         """确认选择并启动主程序"""   
         self.close()  # 关闭选择窗口
@@ -203,3 +268,32 @@ class SkinSelectionWindow(QWidget):
         self.close()
         # 这里可以添加清理逻辑
         QApplication.quit()
+
+
+if __name__ == '__main__':
+    # 创建应用实例
+    app = QApplication(sys.argv)
+    
+    QApplication.setStyle('Fusion')  # 设置全局主题（可选 Fusion, Windows 等）
+
+    # 创建并显示设置窗口
+    global setting_window
+    setting_window = SkinSelectionWindow()
+    setting_window.show()
+
+    # # 创建并显示桌宠项目主进程
+    # global pet
+    # fps = 120
+    # pet = MyPet(fps=fps)
+    # pet.setWindowIcon(QIcon('asset/default.png'))
+    # pet.run(1000//fps)  # 设置帧率
+    
+    # 连接信号，当设置完成时显示主窗口
+    def on_setting_confirmed():
+        setting_window.hide()
+        print("exit")
+    
+    setting_window.selection_confirmed.connect(on_setting_confirmed)
+
+    # 启动应用程序事件循环
+    sys.exit(app.exec_())
