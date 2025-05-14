@@ -4,15 +4,13 @@ from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal, QSize
 import os
-from .drawSlime import EllipseGenerator
-from .gifcom import GIFBackgroundAdder
+from drawSlime import EllipseGenerator
+from gifcom import GIFBackgroundAdder
 from PyQt5.QtGui import QIcon
 import sys
-from .voicespeak import gpt_wav
-# from pathlib import Path
+# from .voicespeak import gpt_wav
+from config import NAME2REALNAME, AVAIABLE_VOICES
 
-# # 将项目根目录（slimePet/）添加到Python路径
-# sys.path.append(str(Path(__file__).parent.parent))
 
 if not os.path.exists("asset/DIY"):
     os.makedirs("asset/DIY")
@@ -242,21 +240,50 @@ class SkinSelectionWindow(QWidget):
             return
         
         self.audio_combo.addItem("Select a voice model...")
-        self.audio_combo.addItems(audio_files)
+        # 添加音频文件项，使用NAME2REALNAME中的对应名称
+        for audio_file in audio_files:
+            # 去掉.wav后缀
+            base_name = os.path.splitext(audio_file)[0]
+            # 查找对应的友好名称
+            display_name = NAME2REALNAME.get(base_name, base_name)
+            # 添加到下拉菜单，存储原始文件名作为用户数据
+            self.audio_combo.addItem(display_name, userData=audio_file)
         self.audio_combo.setCurrentIndex(0)
     
     def on_audio_selected(self, index):
-        # print(f"select {index}")
         """处理音频选择变化"""
         if index > 0:  # 跳过第一个提示项
-            self.selected_audio = self.audio_combo.currentText()
-            print(f"Selected audio: {self.selected_audio}")
+            selected_key = self.audio_combo.currentData()  # 获取存储的key值
+            display_text = self.audio_combo.currentText()  # 获取当前显示的文本
+            
+            # 立即更新下拉菜单显示
+            self.audio_combo.setCurrentIndex(index)
+            self.selected_audio = selected_key  # 存储选中的key
+            
+            # 构建完整的wav文件路径
+            wav_path = "asset/voice/model/"+selected_key
+            
+            # 播放音频（使用线程避免阻塞UI）
             if sys.platform == "win32":
                 import winsound
-                winsound.PlaySound("asset/voice/model/"+self.selected_audio, winsound.SND_FILENAME)
+                import threading
+                def play_sound():
+                    try:
+                        winsound.PlaySound(wav_path, winsound.SND_FILENAME)
+                    except:
+                        print("error")
+                threading.Thread(target=play_sound).start()
             else:
-                song = AudioSegment.from_wav("asset/voice/model/"+self.selected_audio)
-                play(song)
+                from pydub import AudioSegment
+                from pydub.playback import play
+                import threading
+                def play_sound():
+                    try:
+                        song = AudioSegment.from_wav(wav_path)
+                        play(song)
+                    except:
+                        print("error")
+                threading.Thread(target=play_sound).start()
 
     def confirm_selection(self):
         """确认选择并启动主程序"""   
@@ -280,13 +307,6 @@ if __name__ == '__main__':
     global setting_window
     setting_window = SkinSelectionWindow()
     setting_window.show()
-
-    # # 创建并显示桌宠项目主进程
-    # global pet
-    # fps = 120
-    # pet = MyPet(fps=fps)
-    # pet.setWindowIcon(QIcon('asset/default.png'))
-    # pet.run(1000//fps)  # 设置帧率
     
     # 连接信号，当设置完成时显示主窗口
     def on_setting_confirmed():
