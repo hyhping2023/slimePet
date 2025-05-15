@@ -16,6 +16,7 @@ from src.config import AVAIABLE_VOICES, NAME2REALNAME
 import multiprocessing as mp
 import threading
 import json
+from src.voicespeak import initialize_voice
 
 def get_screen_resolution():
     app = QApplication.instance()
@@ -54,6 +55,7 @@ class QPicture(QLabel):
 class MyPet(QWidget):
     def __init__(self, scale_factor=1.0, fps:int = 120):
         super().__init__()
+        initialize_voice()  # 主进程显式初始化
         width, height = get_screen_resolution()
         # 设置窗口分辨率
         self.width = width
@@ -102,7 +104,11 @@ class MyPet(QWidget):
         self.status = "init"
         # 说话人
         self.speaker = "刻晴"
-        change_voice(self.speaker)
+        try:
+            change_voice(self.speaker)
+        except Exception as e:
+            logging.warning(f"语音设置失败: {e}")
+            # 继续执行其他功能
 
     def closeEvent(self, event):
         # 终止所有子进程

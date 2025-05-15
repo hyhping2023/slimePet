@@ -1,14 +1,13 @@
 import pyttsx3
 import threading
-import re
+# import re
 import sys
 import os
-import glob
+# import glob
 import logging
-import tempfile
+# import tempfile
 from shutil import copyfile
 import multiprocessing as mp
-from gradio_client import Client, handle_file
 from pydub import AudioSegment
 from pydub.playback import play 
 from functools import partial
@@ -21,23 +20,52 @@ os.environ['TMPDIR'] = tmp_dir
 if not os.path.exists(tmp_dir):
     os.makedirs(tmp_dir)
 
-client = Client("http://10.4.174.156:9872/", download_files=tmp_dir)
+_voice_initialized = False
+gpt_speak=False
+client=None 
+def initialize_voice():
+    global _voice_initialized, gpt_speak, client 
+    if _voice_initialized: 
+        return
+    
+    try:
+        from gradio_client import Client
+        client = Client("http://10.4.174.156:9872/", 
+                      download_files=os.path.join(os.getcwd(), "tmp", 'voice'),
+                      timeout=5)  # 添加超时
+        client.predict(api_name="/change_choices")
+        gpt_speak = True
+    except Exception as e:
+        logging.warning(f"GPT服务器不可用: {e}")
+        gpt_speak = False
+        client = None
+    finally:
+        _voice_initialized = True
 
 def change_voice(name):
+    if not _voice_initialized:
+        initialize_voice()
     if name not in AVAIABLE_VOICES:
         logging.warning(f"Invalid voice name: {name}. Available voices are: {', '.join(AVAIABLE_VOICES.keys())}")
         return
-    change_weights(name)
-    logging.info(f"Voice changed to: {name}")
+    if gpt_speak:  # 只有在GPT语音可用时才尝试改变权重
+        try:
+            change_weights(name)
+            logging.info(f"Voice changed to: {name}")
+        except NameError:  # 如果change_weights未定义
+            logging.warning("GPT语音服务器不可用，无法改变语音权重")
 
 def check_gpt_server():
+    global client 
+    if client is None:  # 首先检查client是否为None
+        return False
     try:
         client.predict(api_name="/change_choices")
         return True
     except Exception as e:
         logging.error(f"Error connecting to GPT server: {e}")
         return False
-gpt_speak = check_gpt_server()
+
     
 if not gpt_speak:
     def sync_speak(text, SPEAKER=None):
@@ -74,7 +102,10 @@ if not gpt_speak:
             thread = mp.Process(target=sync_speak, args=(text, ))
         thread.start()
         return thread
-    
+    def gpt_sync_speak(text, SPEAKER='rencai'):
+        """GPT同步语音合成的默认回退实现"""
+        sync_speak(text, SPEAKER)
+
 else:
     predict = partial(client.predict, 
         # ref_wav_path=file('/Users/hyhping/Music/people/rencai.wav'),
@@ -134,16 +165,16 @@ else:
         )
         return result
 
-    def gpt_wav(file_dir):
-        # 播放音频
-        # 读取音频文件
-        if sys.platform == "win32":
-            import winsound
-            winsound.PlaySound(file_dir, winsound.SND_FILENAME)
-        else:
-            song = AudioSegment.from_wav(file_dir)
-            play(song)
-        os.remove(file_dir)
+def gpt_wav(file_dir):
+    # 播放音频
+    # 读取音频文件
+    if sys.platform == "win32":
+        import winsound
+        winsound.PlaySound(file_dir, winsound.SND_FILENAME)
+    else:
+        song = AudioSegment.from_wav(file_dir)
+        play(song)
+    os.remove(file_dir)
 
 if __name__ == "__main__":
     # playsound("/Users/hyhping/Music/people/rencai.wav")

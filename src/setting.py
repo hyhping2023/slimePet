@@ -8,7 +8,6 @@ from .drawSlime import EllipseGenerator
 from .gifcom import GIFBackgroundAdder
 from PyQt5.QtGui import QIcon
 import sys
-# from .voicespeak import gpt_wav
 from .config import NAME2REALNAME, AVAIABLE_VOICES
 
 

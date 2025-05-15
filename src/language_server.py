@@ -2,15 +2,29 @@ import threading
 import json
 import os
 import base64
-import ollama
+# import ollama
 from .voicespeak import sync_speak, speak, gpt_sync_speak, gpt_wav, gpt_speak
 from .utils import prompt_clear
+import random
+import logging
+
+# 先定义 ollama_client = None，防止直接报错
+ollama_client = None
+
+try:
+    import ollama
+    ollama_client = ollama.Client("http://10.4.174.156:11434/")
+    # 测试连接是否可用
+    ollama_client.list()  # 测试是否能获取模型列表
+except Exception as e:
+    logging.warning(f"Ollama服务器不可用，部分功能将受限: {e}")
+    ollama_client = None
 
 CHAT_HISTORY = "tmp/chat_history.jsonl"
 CHAT_HISTORY_MAX_LIMIT = 3 * 2 # 5 rounds of conversation
-ollama_client = ollama.Client(
-    "http://10.4.174.156:11434/",
-)
+# ollama_client = ollama.Client(
+#     "http://10.4.174.156:11434/",
+# )
 speak_queue = {}
 print(gpt_speak)
 def gpt_async_speak(text, people, queue, index):
@@ -18,6 +32,17 @@ def gpt_async_speak(text, people, queue, index):
     queue[index] = result
 
 def generate(prompt, people="rencai", model="gemma3:4b", new_chat=False,):
+    if ollama_client is None:
+        # 本地回退：简单回复
+        simple_responses = [
+            "Lost connection qwq...",
+            "zZZ",
+            "我暂时无法连接到AI服务器",
+            "让我想想...想不出来 @_@"
+        ]
+        response = random.choice(simple_responses)
+        sync_speak(response, people)  # 使用本地TTS
+        return response
     threads_queue = []
     inx = 0
     spk_inx = 0
@@ -127,6 +152,18 @@ EMOTION_PROMPT = {
 }
 
 def scene_analyze(emotion, people="rencai", model="gemma3:4b"):
+    if ollama_client is None:
+        # 本地回退：简单回复
+        simple_responses = {
+            "happy": "You look so happy",
+            "sad": "You seem sad...Would you like to play with me?",
+            "angry": "You look angry, what happens?",
+            "neutral": "How are you today?",
+        }
+        response = simple_responses.get(emotion, "How are you today?")
+        sync_speak(response, people)
+        return response
+    
     image_base64 = tmp_picture_encode()
     if emotion == 'neutral':
         prompt = EMOTION_PROMPT[0]

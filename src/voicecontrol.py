@@ -8,7 +8,7 @@ from pynput import keyboard
 import threading
 import logging
 
-
+main_pid = os.getpid()
 # 全局变量
 storage_dir = os.getcwd().split("slimePet")[0] + "slimePet" + os.sep + "tmp" + os.sep
 if not os.path.exists(storage_dir):
@@ -91,6 +91,8 @@ def record_audio():
 
 # 设置按键监听
 def voice_control_thread():
+    if os.getpid() != main_pid:  # 只在主进程运行检测
+        return
     # 启动录音线程
     logging.info("You can use the SPACE key to start/stop recording. And ESC to exit.")
     threading.Thread(target=record_audio, daemon=True).start()
