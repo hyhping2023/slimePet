@@ -355,7 +355,10 @@ class MyPet(QWidget):
         # 检查是否在宠物图像范围内
         if (self.pet_image.x() <= event.x() <= self.pet_image.x() + self.pet_image.width() and
             self.pet_image.y() <= event.y() <= self.pet_image.y() + self.pet_image.height()):
-            setting_window.show()
+            pet.hide()  # 隐藏窗口
+            setting_window.show()  # 显示设置窗口
+            setting_window.raise_()  # 将设置窗口置于最上层:
+            self.status = "init"
     
 
     def mouseMoveEvent(self, event):
@@ -375,11 +378,12 @@ class MyPet(QWidget):
     def keyPressEvent(self, event):
         # 检查是否按下了 Q 键
         if event.key() == Qt.Key_Q:
+            self.status = "quit"
             self.close()  # 关闭窗口
             QApplication.quit() 
             sys.exit(0) # 退出整个应用程序
         if event.key() == Qt.Key_C:
-            self.status = "quit"
+            self.status = "init"
             pet.hide()  # 隐藏窗口
             setting_window.show()  # 显示设置窗口
             setting_window.raise_()  # 将设置窗口置于最上层:
@@ -438,6 +442,8 @@ if __name__ == '__main__':
             setting_window.hide()
             pet.reload_emotion()  # 重新初始化窗口
             pet.status = "free"  # 设置状态为自由
+            pet.speaker = setting_window.selected_audio_character
+            change_voice(pet.speaker)
             pet.show()  # 显示窗口
             
         except Exception as e:

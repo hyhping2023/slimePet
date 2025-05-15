@@ -147,7 +147,7 @@ def scene_analyze(emotion, people="rencai", model="gemma3:4b"):
     )
     print(response['message']['content'])
     print("\nSpeed", response['eval_count']/response['eval_duration']*10**9, "tokens/s")
-    sync_speak(response['message']['content'])
+    sync_speak(response['message']['content'], people)
     return response["message"]["content"]
 
 QUERY_PROMPT = """
