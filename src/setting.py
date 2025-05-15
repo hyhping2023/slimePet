@@ -4,12 +4,12 @@ from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal, QSize
 import os
-from drawSlime import EllipseGenerator
-from gifcom import GIFBackgroundAdder
+from .drawSlime import EllipseGenerator
+from .gifcom import GIFBackgroundAdder
 from PyQt5.QtGui import QIcon
 import sys
 # from .voicespeak import gpt_wav
-from config import NAME2REALNAME, AVAIABLE_VOICES
+from .config import NAME2REALNAME, AVAIABLE_VOICES
 
 
 if not os.path.exists("asset/DIY"):
@@ -23,6 +23,7 @@ class SkinSelectionWindow(QWidget):
         self.movie = None  # 新增movie成员变量
         self.selected_image_path = None  # 初始化属性
         self.selected_audio = None  # 存储选中的音频文件
+        self.selected_audio_character = "anno"  # 默认选中的音频角色
         self.initUI()
         self.img=[
             "asset/default/DEFAULT_smile.gif",
@@ -259,6 +260,7 @@ class SkinSelectionWindow(QWidget):
             # 立即更新下拉菜单显示
             self.audio_combo.setCurrentIndex(index)
             self.selected_audio = selected_key  # 存储选中的key
+            self.selected_audio_character = selected_key.replace(".wav", "")  # 去掉.wav后缀
             
             # 构建完整的wav文件路径
             wav_path = "asset/voice/model/"+selected_key
