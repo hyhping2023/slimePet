@@ -222,6 +222,7 @@ class MyPet(QWidget):
                 self.hand_loose_image.setVisible(False)
             return
         hand = hands[0]
+        self.no_hand_time = time.time()
         self.hand = Hand(hand)
         self.hand_grasp_image.setVisible(True)
         self.hand_loose_image.setVisible(True)
