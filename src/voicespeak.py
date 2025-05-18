@@ -13,6 +13,7 @@ from pydub.playback import play
 from functools import partial
 from .utils import language_detect, contains_chinese, empty_remove
 from .config import AVAIABLE_VOICES
+from gradio_client import Client, handle_file
 
 now_dir = os.getcwd()
 tmp_dir = os.path.join(now_dir, "tmp", 'voice')
@@ -23,16 +24,15 @@ if not os.path.exists(tmp_dir):
 _voice_initialized = False
 gpt_speak=False
 client=None 
+
 def initialize_voice():
     global _voice_initialized, gpt_speak, client 
     if _voice_initialized: 
         return
     
     try:
-        from gradio_client import Client
         client = Client("http://10.4.174.156:9872/", 
-                      download_files=os.path.join(os.getcwd(), "tmp", 'voice'),
-                      timeout=5)  # 添加超时
+                      download_files=os.path.join(os.getcwd(), "tmp", 'voice'),)
         client.predict(api_name="/change_choices")
         gpt_speak = True
     except Exception as e:
@@ -66,6 +66,7 @@ def check_gpt_server():
         logging.error(f"Error connecting to GPT server: {e}")
         return False
 
+initialize_voice()
     
 if not gpt_speak:
     def sync_speak(text, SPEAKER=None):
@@ -177,10 +178,6 @@ def gpt_wav(file_dir):
     os.remove(file_dir)
 
 if __name__ == "__main__":
-    # playsound("/Users/hyhping/Music/people/rencai.wav")
-    # print(result)
-    # playsound(result)
-    
     change_weights("rencai")
     result1 = predict(
         text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
@@ -199,14 +196,3 @@ if __name__ == "__main__":
     gpt_wav(result1)
     song = AudioSegment.from_wav(result2)
     gpt_wav(result2)
-    # 删除临时文件
-    os.remove(result1)
-    os.remove(result2)
-
-    # check_language_support()
-    # import time
-    # # speak("hello everyone")
-    # speak("我是稻妻城的神里绫华")
-    # for i in range(10):
-    #     print(f'主线程计时{i}')
-    #     time.sleep(1)
