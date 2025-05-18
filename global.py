@@ -16,6 +16,7 @@ from src.config import AVAIABLE_VOICES, NAME2REALNAME
 import multiprocessing as mp
 import threading
 import json
+import logging
 from src.voicespeak import initialize_voice
 
 def get_screen_resolution():
