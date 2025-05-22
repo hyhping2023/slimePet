@@ -15,6 +15,9 @@ from .utils import language_detect, contains_chinese, empty_remove
 from .config import AVAIABLE_VOICES
 from gradio_client import Client, handle_file
 
+### 运行前先根据配置调整url ！！！！
+gptsovits_url = "http://:9872/"
+
 now_dir = os.getcwd()
 tmp_dir = os.path.join(now_dir, "tmp", 'voice')
 os.environ['TMPDIR'] = tmp_dir
@@ -31,7 +34,7 @@ def initialize_voice():
         return
     
     try:
-        client = Client("http://10.4.174.156:9872/", 
+        client = Client(gptsovits_url, 
                       download_files=os.path.join(os.getcwd(), "tmp", 'voice'),)
         client.predict(api_name="/change_choices")
         gpt_speak = True
@@ -180,14 +183,14 @@ def gpt_wav(file_dir):
 if __name__ == "__main__":
     change_weights("rencai")
     result1 = predict(
-        text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
+        text="我不是神里凌华的狗",
         ref_wav_path=handle_file(AVAIABLE_VOICES["rencai"]["ref-wav"]),
         prompt_language=AVAIABLE_VOICES["rencai"]["language"],
         text_language="中文",
     )
     change_weights("486")
     result2 = predict(
-        text="黄烨华喜欢杨心选，但是杨心选喜欢的是黄烨华的好朋友新能源，但是新能源喜欢司空镇",
+        text="和我组一辈子乐队吧",
         ref_wav_path=handle_file(AVAIABLE_VOICES["486"]["ref-wav"]),
         prompt_language=AVAIABLE_VOICES["486"]["language"],
         text_language="中文",

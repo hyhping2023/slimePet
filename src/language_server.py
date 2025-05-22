@@ -8,12 +8,15 @@ from .utils import prompt_clear
 import random
 import logging
 
+### 运行前需要先安装 ollama并更改以下url
+ollama_url = "http://:11434/"
+
 # 先定义 ollama_client = None，防止直接报错
 ollama_client = None
 
 try:
     import ollama
-    ollama_client = ollama.Client("http://10.4.174.156:11434/")
+    ollama_client = ollama.Client(ollama_url)
     # 测试连接是否可用
     ollama_client.list()  # 测试是否能获取模型列表
 except Exception as e:

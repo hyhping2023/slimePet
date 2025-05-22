@@ -20,4 +20,5 @@
 
 1. 首先强烈建议打开VPN，确保你能链接到谷歌服务器以确保语音识别模块正常运行，对于无法访问Google语音识别模块的电脑，如果你是Windows系统，暂时没有解决方案，对于Linux和macOS系统，这会有本地的语音识别服务。
 2. 运行global.py文件前，请先确保ollama，GPT-SoVITS服务正常运行，对于跨节点访问，确保服务的监听地址包含127.0.0.1:port.
-3. 无误后运行根目录下的global.py. `
+3. 运行前修改src/voicespeak.py和src/language_server.py下的url为服务节点的url
+4. 无误后运行根目录下的global.py. `
