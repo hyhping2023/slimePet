@@ -8,13 +8,13 @@
 
 ## 接着是Ollama安装
 
-1. 前往Ollama官网下载对应系统的Ollama软件并安装
+1. 前往Ollama官网[](https://ollama.com/)下载对应系统的Ollama软件并安装
 2. 打开终端，输入``ollama pull gemma3:4b``
 3. 运行``ollama serve``
 
 ## 接下来是GPT-SoVITS的安装
 
-可以参考[](https://github.com/RVC-Boss/GPT-SoVITS)里的文档根据系统版本自定义安装
+可以参考[](https://github.com/RVC-Boss/GPT-SoVITS)里的文档根据系统版本自定义安装。也可以使用我们提供的安装包GPT-SoVITS-v4-20250422-nvidia50.zip(只可以在Windows下运行，Linux和macOS系统可以去官网下载，然后把整合包内的模型移动到安装文件夹下)，解压后运行go-webui.bat文件，在打开的网站下选择1-GPT-SoVITS-TTS选项，并在下方选择1C-推理，接下来选择"开TTS推理WebUI"。
 
 ## 运行说明
 
