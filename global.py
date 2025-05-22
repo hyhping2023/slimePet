@@ -269,7 +269,7 @@ class MyPet(QWidget):
     
     def start_game(self):
         self.status = "busy_3"
-        self.game_process = mp.Process(target=guess_game, daemon=True)
+        self.game_process = mp.Process(target=guess_game, args=(self.speaker, ), daemon=True)
         self.game_process.start()
     
     def global_update(self):

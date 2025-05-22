@@ -5,12 +5,12 @@ import cn2an
 
 tmp_dir = os.path.join(os.getcwd().split("slimePet")[0], "slimePet", "tmp", "tmp.txt")
 def guess_game(people="rencai"):
-    difficulties = [100, 1000, 10000]
+    difficulties = [100, ]
     diffculty = random.choice(difficulties)
-    number = random.randint(1, diffculty)
+    number = random.randint(2, diffculty-1)
     lower_bound = 1
     upper_bound = diffculty
-    attempts = [6, 10, 20][difficulties.index(diffculty)]
+    attempts = [10, 10, 20][difficulties.index(diffculty)]
     guess = None
     word = "我已经选择了一个{}到{}之间的数字。你有{}次机会来猜测它。"
     with open(tmp_dir, "r") as f:
